@@ -1,0 +1,1657 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>渾天萬年儀</title>
+<!-- 曆法計算：lunar-javascript（6tail），以 UTC+8 計算農曆、干支與節氣 -->
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
+<!-- 3D 引擎：three.js r147 與其環境光、視角控制 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+/* ───────── 色彩與字型代號 ───────── */
+:root{
+  color-scheme: dark;
+  --night:#07122a; --enamel:#152c52; --brass:#c79b4b; --gold:#ead08c; --bronze:#8b5b2c;
+  --ivory:#f2e7cb; --mist:#a9b4c9; --line:rgba(234,208,140,.28);
+  /* 各行星的代表色：天文儀與面板共用，讓資訊和部件一眼對得上 */
+  --c-year:#d6a466; --c-earth:#6b95e0; --c-day:#d47d4c; --c-moon:#d9dee6;
+  --serif:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --numeral:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+/* 夜空主題：亮色與暗色系統設定下使用同一組深色代號 */
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --night:#07122a; --ivory:#f2e7cb; } }
+:root[data-theme="dark"]{ --night:#07122a; --ivory:#f2e7cb; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--night)}
+body{margin:0;min-height:100%;color:var(--ivory);font-family:var(--serif);overflow-x:hidden;
+  background:radial-gradient(1100px 760px at 32% 38%,#16325e 0%,rgba(10,24,52,0) 62%),radial-gradient(900px 600px at 85% 90%,#0d1d3c 0%,rgba(7,18,42,0) 70%),var(--night);
+  background-attachment:fixed}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.masthead{max-width:1480px;margin:0 auto;padding:22px clamp(16px,3vw,40px) 0;display:flex;align-items:baseline;gap:6px 20px;flex-wrap:wrap}
+.masthead h1{margin:0;font-weight:700;font-size:clamp(28px,3.4vw,42px);letter-spacing:.2em;color:var(--gold);text-shadow:0 1px 0 #3a2508,0 0 22px rgba(234,208,140,.2)}
+.masthead p{margin:0;color:var(--mist);font-size:15px;letter-spacing:.05em}
+.layout{max-width:1480px;margin:0 auto;padding:6px clamp(10px,3vw,40px) 28px;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+@media (min-width:1060px){ .layout{grid-template-columns:minmax(0,1fr) 410px;align-items:start} }
+
+/* ───────── 天文儀舞台 ───────── */
+.stage-wrap{min-width:0}
+@media (min-width:1060px){ .stage-wrap{position:sticky;top:12px} }
+.stage{position:relative;width:100%;aspect-ratio:10/7.4;max-height:calc(100vh - 150px);min-height:320px;touch-action:pan-y}
+@media (max-width:700px){ .stage{aspect-ratio:1/1.02} }
+#dust,#gl{position:absolute;inset:0;width:100%;height:100%}
+#dust{pointer-events:none}
+#gl canvas{display:block;width:100%!important;height:100%!important;cursor:grab}
+#gl canvas.pick{cursor:pointer}
+#gl canvas:active{cursor:grabbing}
+.readout-box{position:absolute;right:clamp(6px,2vw,16px);top:clamp(6px,2vw,14px);text-align:right;font-size:14px;color:var(--mist);pointer-events:none}
+.readout-box b{display:block;font-family:var(--numeral);font-size:22px;font-weight:600;color:var(--ivory)}
+.readout-box.live b{color:var(--gold)}
+.readout-box.preview b{color:var(--c-earth)}
+.hint{position:absolute;left:clamp(6px,2vw,16px);top:clamp(6px,2vw,14px);max-width:16em;white-space:normal!important;font-size:13px;color:var(--mist);opacity:.8;pointer-events:none;white-space:nowrap}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--mist);font-size:15px}
+.err{padding:20px;border:1px solid #f0b48a;border-radius:10px;color:#f7d3b8;max-width:46ch;line-height:1.7}
+
+.stage-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:8px}
+.stage-controls label{font-size:15px;color:var(--mist);display:flex;align-items:center;gap:8px}
+.btn{font-size:15px;line-height:1.2;background:linear-gradient(#22375d,#13233f);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);transition:border-color .2s}
+.btn:hover{border-color:var(--brass)}
+.btn.small{font-size:13px;padding:5px 12px}
+.speed{background:#13233f;border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:15px;color:var(--ivory)}
+
+.plaque{position:absolute;left:clamp(6px,2vw,16px);top:clamp(6px,2vw,14px);width:min(340px,calc(100% - 12px));background:rgba(7,17,38,.93);border:1px solid var(--brass);border-radius:10px;padding:16px 18px 14px;
+  box-shadow:0 14px 40px rgba(0,0,0,.55),inset 0 0 0 4px rgba(7,17,38,1),inset 0 0 0 5px rgba(199,155,75,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:5}
+.plaque[hidden]{display:none}
+.plaque h3{margin:0 34px 2px 0;font-size:22px;color:var(--gold);letter-spacing:.08em}
+.plaque .sub{margin:0 0 10px;color:var(--mist);font-size:14px}
+.plaque dl{margin:0 0 10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
+.plaque dt{color:var(--mist)} .plaque dd{margin:0}
+.plaque p.text{margin:0 0 10px;font-size:15px;line-height:1.75}
+.plaque .close{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:16px}
+
+/* ───────── 資訊面板 ───────── */
+.panel{min-width:0;background:linear-gradient(180deg,rgba(23,47,88,.74),rgba(9,21,45,.86));border:1px solid var(--line);border-radius:14px;padding:22px clamp(16px,2vw,24px);
+  box-shadow:0 20px 50px rgba(0,0,0,.35),inset 0 0 0 4px rgba(7,18,42,.9),inset 0 0 0 5px rgba(199,155,75,.25)}
+.greg{display:flex;align-items:baseline;gap:4px 14px;flex-wrap:wrap}
+.greg .md{font-family:var(--numeral);font-weight:600;font-size:clamp(46px,6vw,60px);line-height:1;color:var(--gold);margin:0}
+.greg .md small{font-family:var(--serif);font-size:.42em;font-weight:600;margin:0 .12em;color:var(--ivory)}
+.greg .yw{font-size:18px;color:var(--mist);margin:0}
+.greg .yw b{font-family:var(--numeral);font-size:24px;font-weight:600;color:var(--ivory);margin-right:2px}
+.lunar{font-size:20px;margin:10px 0 18px;letter-spacing:.04em}
+.lunar .note{font-size:14px;color:var(--mist);letter-spacing:0}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;flex:none;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--c) 45%,rgba(0,0,0,.6) 100%)}
+[data-link="year"]{--c:var(--c-year)} [data-link="earth"]{--c:var(--c-earth)} [data-link="day"]{--c:var(--c-day)} [data-link="moon"]{--c:var(--c-moon)}
+.dot.year{--c:var(--c-year)} .dot.earth{--c:var(--c-earth)} .dot.day{--c:var(--c-day)} .dot.moon{--c:var(--c-moon)}
+[data-link]{cursor:pointer;transition:box-shadow .25s,border-color .25s,background .25s}
+.pillar.lit{border-color:var(--c);box-shadow:inset 0 0 0 3px rgba(7,18,42,.6),0 0 18px -2px var(--c)}
+.pillar figcaption span{display:block;font-size:12px;margin-top:2px;color:var(--mist);opacity:.85}
+.facts div[data-link]{padding:3px 8px;margin:-3px -8px;border-radius:6px}
+.facts div.lit{background:rgba(255,255,255,.05);box-shadow:inset 3px 0 0 var(--c)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:10px 0 0;font-size:12px;color:var(--mist)}
+.legend i{display:inline-block;vertical-align:-1px;margin-right:4px}
+.pillar{margin:0;text-align:center;padding:12px 4px 10px;border-radius:8px;background:linear-gradient(180deg,#1b3664,#0f2245);border:1px solid rgba(199,155,75,.45);box-shadow:inset 0 0 0 3px rgba(7,18,42,.6)}
+.pillar .gz{display:block;font-size:28px;line-height:1.25;font-weight:700;color:var(--gold)}
+.pillar figcaption{margin-top:6px;font-size:13px;color:var(--mist)}
+.facts{margin:0 0 18px;display:grid;gap:9px}
+.facts div{display:grid;grid-template-columns:5.2em 1fr;gap:10px;align-items:center;font-size:16px}
+.facts dt{color:var(--mist);font-size:14px}
+.facts dd{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.link{background:none;border:0;padding:0;color:var(--gold);border-bottom:1px dotted rgba(234,208,140,.6);cursor:pointer;font-weight:600}
+.moon-disc{width:26px;height:26px;flex:none}
+.muted{color:var(--mist);font-size:14px}
+.almanac{border-top:1px solid var(--line);padding-top:16px}
+.nav-row{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:6px;align-items:center;margin-bottom:10px}
+.nav-row h2{margin:0;text-align:center;font-size:20px;font-weight:600}
+.nav-row h2 span{font-family:var(--numeral);font-size:24px}
+.nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#13233f;cursor:pointer;font-size:15px}
+.nav-btn:hover{border-color:var(--brass)}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.grid .wd{text-align:center;font-size:13px;color:var(--mist);padding:2px 0 4px}
+.cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:50px;padding:4px 0;border-radius:7px;border:1px solid transparent;background:rgba(14,31,61,.55);cursor:pointer;transition:border-color .15s}
+.cell:hover{border-color:rgba(199,155,75,.55)}
+.cell .n{font-family:var(--numeral);font-size:19px;font-weight:600;line-height:1}
+.cell .s{font-size:11px;color:var(--mist);line-height:1.2;white-space:nowrap}
+.cell.we .n{color:#e7b98a}
+.cell.mark .s{color:var(--gold)}
+.cell.out{opacity:.38}
+.cell.today .n{text-decoration:underline;text-decoration-color:var(--brass);text-underline-offset:3px}
+.cell .mp{position:absolute;top:3px;right:3px;width:11px;height:11px}
+.tk{width:7px;height:7px;transform:rotate(45deg);background:var(--c-earth)}
+.cell .tk{position:absolute;top:5px;left:5px}
+.jz{width:6px;height:6px;border-radius:50%;background:var(--c-day)}
+.cell .jz{position:absolute;bottom:4px;right:5px}
+.cell.sel{background:linear-gradient(180deg,rgba(234,208,140,.32),rgba(199,155,75,.16));border-color:var(--gold)}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.tools label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mist)}
+.tools input[type=date]{background:#13233f;border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ivory);color-scheme:dark}
+.msg{min-height:1.2em;margin:8px 0 0;font-size:14px;color:#f0b48a}
+.foot{max-width:1480px;margin:0 auto;padding:0 clamp(16px,3vw,40px) 26px;color:var(--mist);font-size:13px;line-height:1.7}
+.foot p{margin:0;max-width:80ch}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+
+/* ════════ 響應式：平板與手機 ════════ */
+body{font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+@media (max-width:700px){
+  .masthead{padding-top:14px;gap:2px 12px}
+  .masthead h1{letter-spacing:.12em}
+  .masthead p{font-size:13px}
+  .layout{padding-left:10px;padding-right:10px;gap:16px}
+  .hint{display:none}
+  .stage-controls{gap:8px}
+  .stage-controls .btn,.stage-controls select{font-size:14px;padding:7px 12px}
+  /* 說明銘牌在手機上改為貼齊畫面底部的面板，內容過長時可捲動 */
+  .plaque{position:fixed;left:8px;right:8px;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:60vh;overflow:auto;z-index:50}
+  .cell{min-height:48px}
+  .cell .n{font-size:16px}
+  .cell .s{font-size:10px}
+  .tools{gap:8px}
+}
+@media (max-width:380px){
+  .stage-controls .btn,.stage-controls select{font-size:13px;padding:6px 10px}
+  .cell .s{font-size:9px}
+  .nav-btn{width:32px;height:32px}
+}
+
+@media (max-width:540px){
+  .panel{padding:18px 14px}
+  .pillar .gz{font-size:24px}
+  .facts div{grid-template-columns:4.8em 1fr;font-size:15px}
+  .lunar{font-size:17px}
+}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <h1>渾天萬年儀</h1>
+  <p>蒸氣天文儀 × 行星公轉 × 機械陀飛輪</p>
+</header>
+
+<main class="layout">
+  <section class="stage-wrap" aria-label="天文儀">
+    <div class="stage" id="stage">
+      <canvas id="dust" aria-hidden="true"></canvas>
+      <div id="gl" role="img" aria-label="可拖曳旋轉的 3D 黃銅天文儀，行星依曆法運行"></div>
+      <p class="loading" id="loading">正在組裝天文儀…</p>
+      <div class="readout-box" id="readout" aria-live="off"><span id="orrLabel">儀器指示</span><b id="orrDate"></b></div>
+      <p class="hint" id="hint">拖曳地球或外圈刻度可轉動日期，拖曳月份環可換月，轉動木座上的鑰匙可逐日推進，點擊木座上的日期窗可近看。拖曳空白處可旋轉視角。</p>
+      <div class="plaque" id="plaque" hidden role="dialog" aria-live="polite"></div>
+    </div>
+    <div class="stage-controls">
+      <button class="btn" id="playBtn" aria-pressed="false">▶ 推進時光</button>
+      <select class="speed" id="speedSel" aria-label="推進速度">
+        <option value="1">每秒 1 日</option>
+        <option value="4" selected>每秒 4 日</option>
+        <option value="20">每秒 20 日</option>
+      </select>
+      <button class="btn" id="winBtn">近看日期窗</button>
+      <button class="btn" id="viewBtn">回到正面視角</button>
+    </div>
+  </section>
+
+  <aside class="panel" id="panel">
+    <section class="readout" aria-live="polite">
+      <div class="greg"><p class="md" id="gMD"></p><p class="yw" id="gYW"></p></div>
+      <p class="lunar" id="lunarLine"></p>
+      <div class="pillars">
+        <figure class="pillar" data-link="year" role="button" tabindex="0"><span class="gz" id="pY"></span><figcaption><i class="dot year"></i>年柱<span>歲星</span></figcaption></figure>
+        <figure class="pillar" data-link="earth" role="button" tabindex="0"><span class="gz" id="pM"></span><figcaption><i class="dot earth"></i>月柱<span>地球與月建環</span></figcaption></figure>
+        <figure class="pillar" data-link="day" role="button" tabindex="0"><span class="gz" id="pD"></span><figcaption><i class="dot day"></i>日柱<span>甲子星</span></figcaption></figure>
+      </div>
+      <dl class="facts">
+        <div data-link="earth"><dt><i class="dot earth"></i>當前節氣</dt><dd id="fCur"></dd></div>
+        <div data-link="earth"><dt><i class="dot earth"></i>下一節氣</dt><dd id="fNext"></dd></div>
+        <div data-link="moon"><dt><i class="dot moon"></i>月相</dt><dd id="fMoon"></dd></div>
+        <div data-link="year"><dt><i class="dot year"></i>生肖</dt><dd id="fSx"></dd></div>
+      </dl>
+    </section>
+    <section class="almanac">
+      <div class="nav-row">
+        <button class="nav-btn" id="prevY" aria-label="上一年">«</button>
+        <button class="nav-btn" id="prevM" aria-label="上個月">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button class="nav-btn" id="nextM" aria-label="下個月">›</button>
+        <button class="nav-btn" id="nextY" aria-label="下一年">»</button>
+      </div>
+      <div class="grid" id="grid" role="grid" aria-label="月曆"></div>
+      <p class="legend"><span><i class="tk"></i>節氣</span><span><i class="jz"></i>甲子日</span><span>右上角為當日月相</span><span>滑鼠移到日期上可預覽行星位置</span></p>
+      <div class="tools">
+        <label>前往日期 <input type="date" id="dateInput" min="1901-01-01" max="2099-12-31"></label>
+        <button class="btn" id="todayBtn">回到今天</button>
+      </div>
+      <p class="msg" id="msg"></p>
+    </section>
+  </aside>
+</main>
+
+<footer class="foot">
+  <p>天文儀與日曆共用同一個時間：轉動天文儀就是在翻日曆，點選日曆也會帶動天文儀。曆法資料由 lunar-javascript 依天文演算法計算，時間以 UTC+8 為準，支援 1901 至 2099 年。年柱以立春為界、月柱以十二「節」為界。月相為近似計算，誤差約數小時。甲子星與歲星是曆法指示星，不代表真實行星位置。</p>
+</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ════════════════════════════════════════════════════════════
+   一、可調整的設定
+   ════════════════════════════════════════════════════════════ */
+const YEAR_MIN = 1901, YEAR_MAX = 2099;
+const SUN_Y = 1.75;                 // 太陽高度（行星軌道中心）
+/* 行星：R 軌道半徑、inc 傾角、node 傾斜方向（度）、prec 軌道面每日旋進（度）、size 大小、spin 自轉速度
+   傾角上限：軌道最低點須高於盤面，約 sin(inc) < (SUN_Y - 0.4) / R */
+const BODIES = [
+  { key:'day',   name:'甲子星', R:1.5,  inc:52,  node:20,  prec:.9,   size:.17, spin:1.6 },
+  { key:'earth', name:'地球',   R:2.4,  inc:-28, node:115, prec:-.35, size:.25, spin:1.0 },
+  { key:'year',  name:'歲星',   R:3.25, inc:22,  node:-55, prec:.5,   size:.31, spin:.5  },
+];
+const MOON = { R:.5, inc:40, size:.095 };
+const LINK_HEX = { year:0xd6a466, earth:0x6b95e0, day:0xd47d4c, moon:0xd9dee6 };
+const COLORS = { brass:0xb8862f, gold:0xd9a73e, bronze:0x7a5228, copper:0xc0703f, enamel:0x10305f };
+
+/* ════════════════════════════════════════════════════════════
+   二、曆法名稱
+   ════════════════════════════════════════════════════════════ */
+const GAN = '甲乙丙丁戊己庚辛壬癸', ZHI = '子丑寅卯辰巳午未申酉戌亥', SX = '鼠牛虎兔龍蛇馬羊猴雞狗豬';
+const TERM   = ['春分','清明','穀雨','立夏','小滿','芒種','夏至','小暑','大暑','立秋','處暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒','立春','雨水','驚蟄'];
+const TERM_S = ['春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒','大寒','立春','雨水','惊蛰'];
+const PINYIN = { DONG_ZHI:'冬至', XIAO_HAN:'小寒', DA_HAN:'大寒', LI_CHUN:'立春', YU_SHUI:'雨水', JING_ZHE:'惊蛰', DA_XUE:'大雪' };
+const TERM_INFO = ['晝夜幾乎等長，此後北半球白晝漸長。','天氣轉暖、草木明淨，也是掃墓祭祖的時節。','雨水滋潤新播的穀物，是春季最後一個節氣。','夏季開始，氣溫明顯上升，作物進入旺盛生長期。','麥類等夏熟作物籽粒漸漸飽滿，但尚未成熟。','有芒的麥子可收、稻穀可種，是一年中的農忙時節。','北半球白晝最長，太陽直射北回歸線。','暑熱漸起，但還不是一年中最熱的時候。','一年中最炎熱的時段，雷雨也最頻繁。','秋季開始，暑氣仍在，早晚漸有涼意。','「處」是停止之意，炎熱暑氣到此逐漸消退。','夜間轉涼，清晨草木上開始凝結露水。','晝夜再度等長，此後北半球夜晚漸長。','露水更冷、將要凝結，秋意轉深。','天氣漸冷，開始出現初霜，是秋季最後一個節氣。','冬季開始，萬物收藏，民間有立冬進補的習俗。','北方開始降雪，但雪量尚小。','降雪增多、範圍擴大，氣溫顯著下降。','北半球白晝最短，此後白晝漸長，自古即為重要節日。','正式進入寒冷時節，常是一年中最冷的時段之一。','嚴寒時節，也是二十四節氣的最後一個。','春季開始，也是干支曆年柱與寅月的起點。','降水增多，雨水逐漸取代降雪。','春雷始鳴，驚醒蟄伏過冬的昆蟲與動物。'];
+const LMONTH = ['正','二','三','四','五','六','七','八','九','十','冬','臘'];
+const FEST = { '春节':'春節','元宵节':'元宵','龙头节':'龍抬頭','端午节':'端午','七夕节':'七夕','中秋节':'中秋','重阳节':'重陽','腊八节':'臘八','除夕':'除夕' };
+const WEEK = '日一二三四五六';
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const CMONTH = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+if (typeof Solar === 'undefined' || typeof Lunar === 'undefined') {
+  $('panel').innerHTML = '<p class="err">曆法函式庫沒有載入，請確認網路連線後重新整理頁面。</p>';
+  $('loading').textContent = '';
+  return;
+}
+
+/* ════════════════════════════════════════════════════════════
+   三、日期工具（儒略日以 UTC+8 民用時間計）
+   ════════════════════════════════════════════════════════════ */
+const D2R = Math.PI / 180, TAU = Math.PI * 2;
+function jdOf(y, m, d) {
+  if (m <= 2) { y -= 1; m += 12; }
+  const A = Math.floor(y / 100), B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+}
+function ymdOf(jd) {
+  const z = Math.floor(jd + 0.5), a = Math.floor((z - 1867216.25) / 36524.25);
+  const A = z + 1 + a - Math.floor(a / 4), B = A + 1524;
+  const C = Math.floor((B - 122.1) / 365.25), D = Math.floor(365.25 * C), E = Math.floor((B - D) / 30.6001);
+  const d = B - D - Math.floor(30.6001 * E), m = E < 14 ? E - 1 : E - 13, y = m > 2 ? C - 4716 : C - 4715;
+  return { y, m, d };
+}
+const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+const dim = (y, m) => [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+const norm = a => ((a % 360) + 360) % 360;
+const wrap180 = a => { a = norm(a); return a > 180 ? a - 360 : a; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad = n => String(n).padStart(2, '0');
+const sameDay = (a, b) => a && b && a.y === b.y && a.m === b.m && a.d === b.d;
+
+/* ════════════════════════════════════════════════════════════
+   四、節氣、太陽黃經、月相
+   ════════════════════════════════════════════════════════════ */
+const terms = [], termYears = new Set(), termByDate = new Map();
+function addTermsFrom(y) {
+  if (termYears.has(y)) return;
+  termYears.add(y);
+  const tbl = Solar.fromYmd(y, 6, 1).getLunar().getJieQiTable();
+  for (const key in tbl) {
+    const idx = TERM_S.indexOf(PINYIN[key] || key);
+    if (idx < 0) continue;
+    const s = tbl[key], jd = s.getJulianDay();
+    if (terms.some(t => Math.abs(t.jd - jd) < 1)) continue;
+    const t = { idx, jd, y:s.getYear(), m:s.getMonth(), d:s.getDay(), h:s.getHour(), mi:s.getMinute() };
+    terms.push(t); termByDate.set(`${t.y}-${t.m}-${t.d}`, t);
+  }
+  terms.sort((a, b) => a.jd - b.jd);
+}
+function ensureTerms(y) { for (let k = y - 1; k <= y + 1; k++) addTermsFrom(clamp(k, 1899, 2101)); }
+function termBracket(T) {
+  ensureTerms(ymdOf(T).y);
+  let lo = 0, hi = terms.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (terms[mid].jd <= T) lo = mid; else hi = mid - 1; }
+  return { prev: terms[lo], next: terms[lo + 1] };
+}
+function sunLon(T) {                // 在相鄰兩個節氣時刻之間內插太陽黃經
+  const { prev, next } = termBracket(T);
+  return norm(prev.idx * 15 + 15 * (T - prev.jd) / (next.jd - prev.jd));
+}
+function moonElong(T) {             // 日月黃經差（Meeus 簡化月球理論）
+  const t = (T - 8 / 24 - 2451545) / 36525;
+  const Lp = 218.3164477 + 481267.88123421 * t, D = 297.8501921 + 445267.1114034 * t;
+  const M = 357.5291092 + 35999.0502909 * t, Mp = 134.9633964 + 477198.8675055 * t, F = 93.272095 + 483202.0175233 * t;
+  const s = x => Math.sin(x * D2R);
+  const lon = Lp + 6.288774 * s(Mp) + 1.274027 * s(2 * D - Mp) + 0.658314 * s(2 * D) + 0.213618 * s(2 * Mp)
+    - 0.185116 * s(M) - 0.114332 * s(2 * F) + 0.058793 * s(2 * D - 2 * Mp) + 0.057066 * s(2 * D - M - Mp)
+    + 0.053322 * s(2 * D + Mp) + 0.045758 * s(2 * D - M) - 0.040923 * s(M - Mp) - 0.03472 * s(D) - 0.030383 * s(M + Mp);
+  return norm(lon - sunLon(T));
+}
+function termOf(y, idx) { ensureTerms(y); return terms.find(t => t.idx === idx && t.y === y); }
+function lichunYear(T) { const { y } = ymdOf(T); return T >= termOf(y, 21).jd ? y : y - 1; }
+function moonPhaseName(E) {
+  if (E < 12 || E >= 348) return '朔月'; if (E < 80) return '蛾眉月'; if (E < 100) return '上弦月';
+  if (E < 168) return '盈凸月'; if (E < 192) return '望月'; if (E < 260) return '虧凸月';
+  if (E < 280) return '下弦月'; return '殘月';
+}
+
+/* ════════════════════════════════════════════════════════════
+   五、日期 → 各部件角度（度，由上往下看逆時針，0° 指向右方）
+   盤面上「日心黃經 L」畫在角度 L 處；地球位於太陽黃經 + 180°
+   ════════════════════════════════════════════════════════════ */
+function computeState(T) {
+  const lam = sunLon(T), E = moonElong(T);
+  const dn = Math.floor(T + 0.5);
+  const dayIdx = (((dn + 49) % 60) + 60) % 60 + (T + 0.5 - dn);
+  const ly = lichunYear(T), yb = (((ly - 4) % 12) + 12) % 12, fy = norm(lam - 315) / 360;
+  const { y, m } = ymdOf(T);
+  const nextStart = m === 12 ? jdOf(y + 1, 1, 1) : jdOf(y, m + 1, 1);
+  const st = clamp((T - (nextStart - 0.5)) / 0.5, 0, 1), stE = st * st * (3 - 2 * st);
+  return {
+    lam, E,
+    earth: lam + 180,
+    moon: lam + 180 + 180 + E,              // 月球在地球周圍的方向
+    day: dayIdx * 6 + 90,
+    year: (yb + fy) * 30 + 90,
+    ring: -90 + 30 * (y * 12 + (m - 1) + stE),  // 月份環：當月轉到正前方視窗
+    days: T - 2451545                             // 軌道面旋進的時間基準（同一天永遠是同一個姿態）
+  };
+}
+
+/* ════════════════════════════════════════════════════════════
+   六、3D 場景
+   ════════════════════════════════════════════════════════════ */
+const stage = $('stage'), glBox = $('gl');
+let renderer, scene, camera, controls;
+try {
+  if (typeof THREE === 'undefined' || !THREE.OrbitControls) throw new Error('three');
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+} catch (e) {
+  $('loading').innerHTML = '<p class="err">這個瀏覽器無法顯示 3D 天文儀（需要 WebGL）。右側的日曆功能仍可正常使用。</p>';
+  renderer = null;
+}
+
+const deg = d => d * D2R;
+const tex = { };
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.userData.canvas = c;
+  return t;
+}
+function rnd(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+const refs = { pickables: [], gears: {}, bodies: [] };
+let mats = {};
+
+function buildScene() {
+  const SMALL = window.innerWidth < 700;   // 手機：降低解析度與陰影品質，維持流暢
+  renderer.setPixelRatio(Math.min(SMALL ? 1.5 : 2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = .98;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x000000, 0);
+  glBox.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(buildEnvScene(), 0.03).texture;
+
+  camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  renderer.domElement.style.touchAction = 'pan-y';   // 手機上下滑動可捲動頁面，左右滑動旋轉視角
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.enablePan = false; controls.rotateSpeed = 0.55;
+  controls.minPolarAngle = deg(28); controls.maxPolarAngle = deg(80);
+  controls.target.set(0, .9, 0);
+
+  // 光源：暖色主光（投影）、冷色輪廓光、太陽點光源
+  const key = new THREE.DirectionalLight(0xfff4e2, 1.3);
+  key.position.set(-5, 9, 6); key.castShadow = true;
+  key.shadow.mapSize.set(SMALL ? 1024 : 2048, SMALL ? 1024 : 2048);
+  Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 34 });
+  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x8fb0ff, 0.55); rim.position.set(6, 3, -7); scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0x9fb6e8, 0x2a1a08, 0.35));
+  const sunLight = new THREE.PointLight(0xffc36a, 2.2, 9, 1.4); sunLight.position.set(0, SUN_Y, 0); scene.add(sunLight);
+
+  // 材質：拉絲黃銅（帶亮光漆）、拋光金、錘紋銅、上漆木料
+  const brushed = brushedTex(5, 8), brushedWide = brushedTex(9, 2), hammer = hammeredTex(), wood = woodTex();
+  const brassMat = (color, rough = .6, rmap = brushed, coat = .15) => new THREE.MeshPhysicalMaterial({
+    color, metalness: 1, roughness: rough * 2, roughnessMap: rmap, bumpMap: rmap, bumpScale: .0012,
+    clearcoat: coat, clearcoatRoughness: .1 });
+  mats = {
+    brass:     brassMat(0x6f3211),
+    brassDark: brassMat(0x411a08, .66),
+    band:      brassMat(0x7a3714, .56, brushedWide, .2),
+    gold:      new THREE.MeshPhysicalMaterial({ color: 0x95471e, metalness: 1, roughness: .24, clearcoat: .3, clearcoatRoughness: .12 }),
+    bronze:    brassMat(0x321205, .66),
+    copper:    brassMat(0xa13f1e, .45),
+    steel:     new THREE.MeshStandardMaterial({ color: 0xe2e6ec, metalness: 1, roughness: .16 }),
+    ruby:      new THREE.MeshPhysicalMaterial({ color: 0xa3122a, metalness: 0, roughness: .05, clearcoat: 1, emissive: 0x3a0008 }),
+    hammered:  new THREE.MeshPhysicalMaterial({ color: 0x64290e, metalness: 1, roughness: .45, bumpMap: hammer, bumpScale: .035, clearcoat: .5, clearcoatRoughness: .2 }),
+    wood:      new THREE.MeshPhysicalMaterial({ map: wood, color: 0x7a5a50, roughness: .62, metalness: 0, clearcoat: .45, clearcoatRoughness: .3 }),
+  };
+
+  buildBase();
+  buildDial();
+  buildGears();
+  buildCore();
+  buildBands();
+  buildBodies();
+  buildCrank();
+  buildWindows();
+  resize();
+}
+
+/* ── 材質貼圖 ── */
+function brushedTex(seed, repeatX) {      // 拉絲紋：沿長度方向的細長刮痕，作為粗糙度與凹凸貼圖
+  const t = canvasTex(1024, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#5c5c5c'; ctx.fillRect(0, 0, w, h);
+    const r = rnd(seed);
+    for (let i = 0; i < 2600; i++) {
+      const v = 40 + r() * 90 | 0;
+      ctx.fillStyle = `rgba(${v},${v},${v},${.3 + r() * .5})`;
+      ctx.fillRect(r() * w - 300, r() * h, 120 + r() * 700, r() < .92 ? 1 : 2);
+    }
+    // 金屬漆中的細小亮片：粗糙度忽高忽低的微點，在光下閃爍
+    for (let i = 0; i < 12000; i++) { const v = r() < .5 ? 25 : 160; ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(r() * w, r() * h, 1, 1); }
+  }, false);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeatX, 1);
+  return t;
+}
+function hammeredTex() {                  // 錘紋：大量圓形淺凹
+  const t = canvasTex(1024, 1024, (ctx, w, h) => {
+    ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, w, h);
+    const r = rnd(21);
+    for (let i = 0; i < 2400; i++) {
+      const x = r() * w, y = r() * h, rr = 10 + r() * 22;
+      const g = ctx.createRadialGradient(x - rr * .2, y - rr * .2, 0, x, y, rr);
+      g.addColorStop(0, 'rgba(60,60,60,.55)'); g.addColorStop(.7, 'rgba(120,120,120,.25)'); g.addColorStop(1, 'rgba(170,170,170,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rr, 0, TAU); ctx.fill();
+    }
+  }, false);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3);
+  return t;
+}
+function woodTex() {                      // 桃花心木：暗紅底色與波動木紋
+  const t = canvasTex(1024, 512, (ctx, w, h) => {
+    ctx.fillStyle = '#43140c'; ctx.fillRect(0, 0, w, h);
+    const r = rnd(33);
+    for (let i = 0; i < 260; i++) {
+      const y0 = r() * h, amp = 2 + r() * 8, fq = .004 + r() * .01, ph = r() * 9;
+      ctx.strokeStyle = r() < .5 ? `rgba(30,6,4,${.2 + r() * .35})` : `rgba(150,60,35,${.12 + r() * .2})`;
+      ctx.lineWidth = .6 + r() * 2.4;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 8) { const y = y0 + Math.sin(x * fq + ph) * amp + Math.sin(x * fq * 3.1 + ph) * amp * .3; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    for (let i = 0; i < 90; i++) { ctx.fillStyle = `rgba(20,4,2,${r() * .35})`; ctx.fillRect(r() * w, r() * h, 6 + r() * 30, 1); }
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 1);
+  return t;
+}
+
+/* ── 反射環境：大型柔光燈箱，讓拉絲黃銅呈現明亮、柔和的香檳金反光 ── */
+function buildEnvScene() {
+  const env = new THREE.Scene();
+  env.add(new THREE.Mesh(new THREE.SphereGeometry(20, 32, 16), new THREE.MeshBasicMaterial({ color: 0x2c3448, side: THREE.BackSide })));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(20, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x4a3a2a }));
+  floor.position.y = -5; env.add(floor);
+  const panel = (w, h, col, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m);
+  };
+  panel(16, 12, new THREE.Color(5.2, 4.9, 4.4), 0, 13, 1);     // 頂部大燈箱
+  panel(8, 10, new THREE.Color(4.2, 3.7, 3.1), -11, 5, 7);     // 左前暖色燈箱
+  panel(6, 12, new THREE.Color(2.3, 2.6, 3.2), 11, 4, -4);     // 右側冷色條燈
+  panel(14, 4, new THREE.Color(1.9, 1.7, 1.4), 0, 1, 13);      // 前方低位補光
+  panel(10, 3, new THREE.Color(1.6, 1.3, .9), 0, 3, -13);      // 後方輪廓光
+  return env;
+}
+
+/* ── 十二邊形木座、錘紋銅底盤、車削支柱 ── */
+function buildBase() {
+  const g = new THREE.Group(); scene.add(g);
+  const add = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  const rot = Math.PI / 12;
+  add(new THREE.CylinderGeometry(4.78, 4.9, .2, 12), mats.wood, -2.16).rotation.y = rot;
+  add(new THREE.CylinderGeometry(4.55, 4.7, .1, 12), mats.wood, -2.01).rotation.y = rot;
+  add(new THREE.CylinderGeometry(4.3, 4.3, .86, 12), mats.wood, -1.53).rotation.y = rot;
+  add(new THREE.CylinderGeometry(4.62, 4.42, .14, 12), mats.wood, -1.03).rotation.y = rot;
+  const floor = add(new THREE.CircleGeometry(4.05, 120).rotateX(-Math.PI / 2), mats.hammered, -.955);
+  floor.castShadow = false;
+  add(new THREE.TorusGeometry(4.05, .03, 10, 160).rotateX(Math.PI / 2), mats.brass, -.95);
+  // 車削黃銅支柱：撐起刻度環
+  const prof = [[0, 0], [.12, 0], [.12, .05], [.075, .085], [.06, .16], [.1, .34], [.115, .45], [.075, .6], [.05, .68], [.08, .74], [.105, .78], [.105, .87], [0, .87]];
+  const bal = new THREE.LatheGeometry(prof.map(q => new THREE.Vector2(q[0], q[1])), 32);
+  for (let k = 0; k < 12; k++) {
+    const a = (k + .5) * TAU / 12, m = new THREE.Mesh(bal, mats.brass);
+    m.position.set(4.48 * Math.cos(a), -.95, -4.48 * Math.sin(a)); m.castShadow = m.receiveShadow = true; g.add(m);
+  }
+  // 刻度環外框（含圓潤邊緣與底面厚度）
+  add(new THREE.LatheGeometry([[4.3, .02], [4.36, .12], [4.5, .16], [4.66, .12], [4.72, .02], [4.72, -.08], [4.3, -.08], [4.3, .02]].map(q => new THREE.Vector2(q[0], q[1])), 160), mats.brass, 0);
+  add(new THREE.RingGeometry(3.08, 4.32, 160, 1).rotateX(Math.PI / 2), mats.brassDark, -.08);
+  add(new THREE.CylinderGeometry(3.08, 3.08, .1, 160, 1, true), mats.brass, -.03);
+  const studs = new THREE.InstancedMesh(new THREE.SphereGeometry(.045, 12, 8), mats.gold, 72);
+  const m4 = new THREE.Matrix4();
+  for (let k = 0; k < 72; k++) { const a = k * TAU / 72; m4.makeTranslation(4.6 * Math.cos(a), .155, -4.6 * Math.sin(a)); studs.setMatrixAt(k, m4); }
+  g.add(studs);
+  // 機芯平台與三支短柱
+  add(new THREE.CylinderGeometry(1.15, 1.15, .05, 96), mats.brass, -.62);
+  for (let k = 0; k < 3; k++) {
+    const a = k * TAU / 3 + .5, m = new THREE.Mesh(new THREE.CylinderGeometry(.05, .07, .33, 16), mats.brassDark);
+    m.position.set(.9 * Math.cos(a), -.79, -.9 * Math.sin(a)); m.castShadow = true; g.add(m);
+  }
+}
+
+/* ── 渾儀大環：兩條寬版拉絲黃銅帶跨過整座儀器 ── */
+function buildBands() {
+  const tickTex = canvasTex(4096, 64, (ctx, w, h) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(70,45,10,.75)';
+    for (let k = 0; k <= 360; k++) { const x = k / 360 * w, L = k % 10 === 0 ? 22 : k % 5 === 0 ? 14 : 8; ctx.fillRect(x, 4, k % 10 === 0 ? 2.5 : 1.4, L); ctx.fillRect(x, h - 4 - L, k % 10 === 0 ? 2.5 : 1.4, L); }
+  });
+  const mat = mats.band.clone(); mat.map = tickTex;
+  const R = 4.6, prof = [[R - .03, -.13], [R, -.13], [R, .13], [R - .03, .13], [R - .03, -.13]].map(q => new THREE.Vector2(q[0], q[1]));
+  [32, 122].forEach(rotY => {
+    const geo = new THREE.LatheGeometry(prof, 200, Math.PI / 2 - .05, Math.PI + .1).rotateX(Math.PI / 2);
+    const band = new THREE.Mesh(geo, mat); band.position.y = .02; band.rotation.y = deg(rotY);
+    band.castShadow = band.receiveShadow = true; scene.add(band);
+  });
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.11, 32, 20), mats.gold); knob.position.y = R + .08; knob.castShadow = true; scene.add(knob);
+  const fin = new THREE.Mesh(new THREE.ConeGeometry(.05, .22, 20), mats.gold); fin.position.y = R + .28; scene.add(fin);
+}
+
+/* ── 盤面文字貼圖：文字與刻度同時輸出為金屬度貼圖，讓刻字呈現真實金屬反光 ── */
+function textRot(ctx, x, y, thetaDeg, draw) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-(thetaDeg + 90) * D2R); draw(); ctx.restore();
+}
+function dialPainter(ly, metalPass) {
+  return (ctx, W) => {
+    const c = W / 2, s = c / 4.32, P = (r, t) => [c + r * s * Math.cos(t * D2R), c - r * s * Math.sin(t * D2R)];
+    const ink = metalPass ? '#fff' : '#dca36c', base = metalPass ? '#000' : null;
+    if (metalPass) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, W); }
+    else {
+      const gr = ctx.createRadialGradient(c, c, 3.0 * s, c, c, 4.32 * s);
+      gr.addColorStop(0, '#0f2c5c'); gr.addColorStop(.5, '#0b2450'); gr.addColorStop(1, '#071a3c');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, W);
+      // 琺瑯細紋
+      const r = rnd(7); ctx.globalAlpha = .06;
+      for (let i = 0; i < 1400; i++) { ctx.fillStyle = r() < .5 ? '#fff' : '#000'; ctx.fillRect(r() * W, r() * W, 2, 2); }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(24,52,100,.5)';
+      ctx.beginPath(); ctx.arc(c, c, 3.62 * s, 0, TAU); ctx.arc(c, c, 3.1 * s, 0, TAU, true); ctx.fill();
+    }
+    ctx.strokeStyle = ink; ctx.fillStyle = ink;
+    [3.1, 3.62, 3.66, 4.3].forEach((r, i) => { ctx.lineWidth = i === 1 || i === 2 ? 2 : 4; ctx.beginPath(); ctx.arc(c, c, r * s, 0, TAU); ctx.stroke(); });
+    // 節氣刻度：每 5° 一小刻、每 15° 一大刻
+    for (let l = 0; l < 360; l += 5) {
+      const t = l + 180, major = l % 15 === 0;
+      const [x0, y0] = P(major ? 3.66 : 4.2, t), [x1, y1] = P(4.3, t);
+      ctx.lineWidth = major ? 4 : 2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < 24; i++) {
+      const t = i * 15 + 7.5 + 180, [x, y] = P(3.96, t);
+      textRot(ctx, x, y, t, () => { ctx.font = '700 50px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(TERM[i], 0, 0); });
+      const [x2, y2] = P(4.23, i * 15 + 180 - 0.1);
+      textRot(ctx, x2 + 0, y2, i * 15 + 180 + 3.2, () => { ctx.font = '600 22px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(i * 15 + '°', 0, 0); });
+    }
+    // 月建（地支）環
+    const ys = (((ly - 4) % 10) + 10) % 10;
+    for (let b = 0; b < 12; b++) {
+      const bound = 285 + 30 * b + 180, [x0, y0] = P(3.1, bound), [x1, y1] = P(3.62, bound);
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      const t = 270 + 30 * b + 180, [x, y] = P(3.36, t), off = (b - 2 + 12) % 12;
+      textRot(ctx, x, y, t, () => { ctx.font = '900 60px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(GAN[(ys * 2 + 2 + off) % 10] + ZHI[b], 0, 0); });
+    }
+  };
+}
+function monthPainter(metalPass) {
+  return (ctx, W) => {
+    const c = W / 2, s = c / 3.05, P = (r, t) => [c + r * s * Math.cos(t * D2R), c - r * s * Math.sin(t * D2R)];
+    ctx.fillStyle = metalPass ? '#fff' : '#a8703f'; ctx.fillRect(0, 0, W, W);
+    if (!metalPass) {
+      for (let j = 0; j < 12; j++) {          // 交錯的拉絲金屬色
+        ctx.fillStyle = j % 2 ? 'rgba(90,55,20,.28)' : 'rgba(255,235,180,.12)';
+        ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, 3.06 * s, (30 * j - 15) * D2R, (30 * j + 15) * D2R); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha = .12; ctx.strokeStyle = '#fff';
+      for (let r = 2.5; r < 3.05; r += 0.012) { ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(c, c, r * s, 0, TAU); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    const ink = metalPass ? '#000' : '#1e0f04';
+    ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let j = 0; j < 12; j++) {
+      const ctr = -30 * j;
+      for (let k = -15; k < 15; k += 3) {
+        const [x0, y0] = P(k === -15 ? 2.5 : 2.98, ctr + k), [x1, y1] = P(3.05, ctr + k);
+        ctx.lineWidth = k === -15 ? 4 : 2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+      const [x, y] = P(2.86, ctr), [x2, y2] = P(2.62, ctr);
+      textRot(ctx, x, y, ctr, () => { ctx.font = '700 66px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(ROMAN[j], 0, 0); });
+      textRot(ctx, x2, y2, ctr, () => { ctx.font = '700 30px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(CMONTH[j], 0, 0); });
+    }
+  };
+}
+function paintInto(t, painter) { const c = t.userData.canvas; painter(c.getContext('2d'), c.width, c.height); t.needsUpdate = true; }
+
+function buildDial() {
+  const ly = 2026;
+  tex.dial = canvasTex(2048, 2048, dialPainter(ly, false));
+  tex.dialMetal = canvasTex(2048, 2048, dialPainter(ly, true), false);
+  const dial = new THREE.Mesh(new THREE.RingGeometry(3.08, 4.32, 180, 1).rotateX(-Math.PI / 2),
+    new THREE.MeshPhysicalMaterial({ map: tex.dial, metalnessMap: tex.dialMetal, metalness: 1, roughness: .32, clearcoat: .8, clearcoatRoughness: .25 }));
+  dial.receiveShadow = true; scene.add(dial);
+  // 盤面間的黃銅嵌環
+  [[3.08, .03], [4.31, .03], [2.48, .035]].forEach(([r, tube]) => {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 12, 200).rotateX(Math.PI / 2), mats.gold);
+    t.position.y = .01; t.castShadow = t.receiveShadow = true; scene.add(t);
+  });
+  // 月份環（獨立旋轉的拉絲黃銅圓環）
+  tex.month = canvasTex(1536, 1536, monthPainter(false));
+  tex.monthMetal = canvasTex(1536, 1536, monthPainter(true), false);
+  refs.monthRing = new THREE.Group(); refs.monthRing.position.y = .045; scene.add(refs.monthRing);
+  const mr = new THREE.Mesh(new THREE.RingGeometry(2.52, 3.05, 160, 1).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({ map: tex.month, metalnessMap: tex.monthMetal, metalness: 1, roughness: .46 }));
+  mr.receiveShadow = true; refs.monthRing.add(mr);
+  const mrUnder = new THREE.Mesh(new THREE.RingGeometry(2.52, 3.05, 160, 1).rotateX(Math.PI / 2), mats.brassDark); mrUnder.position.y = -.05; refs.monthRing.add(mrUnder);
+  const mrIn = new THREE.Mesh(new THREE.CylinderGeometry(2.52, 2.52, .05, 160, 1, true), mats.brass); mrIn.position.y = -.025; refs.monthRing.add(mrIn);
+  const mrEdge = new THREE.Mesh(new THREE.CylinderGeometry(3.05, 3.05, .05, 160, 1, true), mats.brassDark);
+  mrEdge.position.y = -.025; refs.monthRing.add(mrEdge);
+  // 月份視窗：正前方固定框
+  const win = new THREE.Group(); scene.add(win);
+  [-105, -75].forEach(a => {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(.6, .05, .045), mats.gold);
+    bar.position.set(2.78 * Math.cos(deg(a)), .085, -2.78 * Math.sin(deg(a))); bar.rotation.y = deg(a); bar.castShadow = true; win.add(bar);
+  });
+  const arcG = (r) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, .022, 8, 40, deg(30)).rotateX(Math.PI / 2), mats.gold); m.rotation.y = deg(-105); m.position.y = .085; win.add(m); };
+  arcG(2.49); arcG(3.07);
+  const glow = new THREE.Mesh(new THREE.RingGeometry(2.52, 3.05, 24, 1, deg(-105), deg(30)).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: .05, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.position.y = .075; win.add(glow);
+  // 當前節氣與月建高亮
+  const hiMat = o => new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
+  refs.termHi = new THREE.Group(); scene.add(refs.termHi);
+  const th = new THREE.Mesh(new THREE.RingGeometry(3.67, 4.29, 16, 1, 0, deg(15)).rotateX(-Math.PI / 2), hiMat(.2)); th.position.y = .006; refs.termHi.add(th);
+  refs.branchHi = new THREE.Group(); scene.add(refs.branchHi);
+  const bh = new THREE.Mesh(new THREE.RingGeometry(3.11, 3.61, 24, 1, 0, deg(30)).rotateX(-Math.PI / 2), hiMat(.16)); bh.position.y = .006; refs.branchHi.add(bh);
+  refs.hover = new THREE.Mesh(new THREE.RingGeometry(1, 2, 16, 1, 0, deg(15)).rotateX(-Math.PI / 2), hiMat(.12));
+  refs.hover.visible = false; scene.add(refs.hover);
+  // 日期指針（指向地球所在的日心黃經）
+  const sh = new THREE.Shape();
+  sh.moveTo(-.75, -.05); sh.lineTo(-.45, -.035); sh.lineTo(3.95, -.022); sh.lineTo(4.05, -.075); sh.lineTo(4.3, 0); sh.lineTo(4.05, .075); sh.lineTo(3.95, .022); sh.lineTo(-.45, .035); sh.lineTo(-.75, .05); sh.closePath();
+  const ng = new THREE.ExtrudeGeometry(sh, { depth: .025, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 2 }).rotateX(-Math.PI / 2);
+  refs.pointer = new THREE.Group(); refs.pointer.position.y = .1; scene.add(refs.pointer);
+  refs.needleMat = mats.gold.clone();
+  const needle = new THREE.Mesh(ng, refs.needleMat); needle.castShadow = true; needle.userData.key = 'pointer'; refs.pointer.add(needle); refs.pickables.push(needle);
+  refs.ghostPointer = new THREE.Mesh(ng, new THREE.MeshBasicMaterial({ color: 0x6b95e0, transparent: true, opacity: .5, depthWrite: false }));
+  refs.ghostPointer.position.y = .13; refs.ghostPointer.visible = false; scene.add(refs.ghostPointer);
+  const cw = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .05, 32), mats.brass); cw.position.set(-.78, .012, 0); cw.castShadow = true; refs.pointer.add(cw);
+  refs.dialLY = ly;
+}
+function repaintDial(ly) {
+  if (!renderer || refs.dialLY === ly) return;
+  refs.dialLY = ly;
+  paintInto(tex.dial, dialPainter(ly, false)); paintInto(tex.dialMetal, dialPainter(ly, true));
+}
+
+/* ── 齒輪：真實齒形擠出，依齒數比咬合 ── */
+function gearShape(N, m, spokes) {
+  const r = m * N / 2, ra = r + m, rf = r - 1.25 * m, p = TAU / N, s = new THREE.Shape();
+  for (let j = 0; j < N; j++) {
+    const c = j * p, pts = [[rf, c - .32 * p], [ra, c - .15 * p], [ra, c + .15 * p], [rf, c + .32 * p]];
+    pts.forEach(([rr, a], i) => (j === 0 && i === 0 ? s.moveTo : s.lineTo).call(s, rr * Math.cos(a), rr * Math.sin(a)));
+  }
+  s.closePath();
+  if (spokes) {
+    const rimIn = rf - 1.5 * m, hub = Math.max(r * .3, m * 2), w = m * .7;
+    for (let k = 0; k < spokes; k++) {
+      const s0 = TAU * k / spokes, s1 = TAU * (k + 1) / spokes, h = new THREE.Path();
+      h.absarc(0, 0, rimIn, s0 + w / rimIn, s1 - w / rimIn, false);
+      h.lineTo(hub * Math.cos(s1 - w / hub), hub * Math.sin(s1 - w / hub));
+      h.absarc(0, 0, hub, s1 - w / hub, s0 + w / hub, true);
+      s.holes.push(h);
+    }
+  }
+  const ax = new THREE.Path(); ax.absarc(0, 0, m * .9, 0, TAU, true); s.holes.push(ax);
+  return s;
+}
+function ringGearShape(Nin, Nout, m) {
+  const s = new THREE.Shape(), R = m * Nout / 2, p = TAU / Nout;
+  for (let j = 0; j < Nout; j++) {
+    const c = j * p;
+    [[R - 1.25 * m, c - .32 * p], [R + m, c - .15 * p], [R + m, c + .15 * p], [R - 1.25 * m, c + .32 * p]]
+      .forEach(([rr, a], i) => (j === 0 && i === 0 ? s.moveTo : s.lineTo).call(s, rr * Math.cos(a), rr * Math.sin(a)));
+  }
+  s.closePath();
+  const r = m * Nin / 2, q = TAU / Nin, h = new THREE.Path();
+  for (let j = 0; j < Nin; j++) {
+    const c = j * q;
+    [[r + 1.25 * m, c - .32 * q], [r - m, c - .15 * q], [r - m, c + .15 * q], [r + 1.25 * m, c + .32 * q]]
+      .forEach(([rr, a], i) => (j === 0 && i === 0 ? h.moveTo : h.lineTo).call(h, rr * Math.cos(a), rr * Math.sin(a)));
+  }
+  h.closePath(); s.holes.push(h);
+  const hr = (r + 1.25 * m + R - 1.25 * m) / 2;
+  for (let k = 0; k < 24; k++) { const c = new THREE.Path(), a = k * TAU / 24; c.absarc(hr * Math.cos(a), hr * Math.sin(a), m * .55, 0, TAU, true); s.holes.push(c); }
+  return s;
+}
+function extrudeGear(shape, depth) {
+  return new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: depth * .18, bevelSize: depth * .12, bevelSegments: 2, curveSegments: 10 }).rotateX(-Math.PI / 2);
+}
+function buildGears() {
+  const M = .068, G = refs.gears, Y = -.585;
+  const mk = (geo, mat, x, z, y) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+  G.ring = mk(extrudeGear(ringGearShape(60, 70, M), .07), mats.bronze, 0, 0, Y);
+  G.planets = [];
+  const pg = extrudeGear(gearShape(18, M, 4), .08);
+  for (let k = 0; k < 6; k++) {
+    const psi = k * 60 * D2R, d = (24 + 18) * M / 2;
+    G.planets.push({ mesh: mk(pg, mats.brass, d * Math.cos(psi), -d * Math.sin(psi), Y + .005), psi });
+    const pin = mk(new THREE.CylinderGeometry(.035, .035, .16, 16), mats.ruby, d * Math.cos(psi), -d * Math.sin(psi), Y + .08);
+    pin.castShadow = false;
+  }
+  G.sun = mk(extrudeGear(gearShape(24, M, 5), .09), mats.gold, 0, 0, Y + .01);
+  // 陀飛輪（位於太陽輪上方，框架一分鐘一圈）
+  const tb = new THREE.Group(); tb.position.y = -.38; scene.add(tb);
+  G.cage = new THREE.Group(); tb.add(G.cage);
+  const cageRing = new THREE.Mesh(new THREE.TorusGeometry(.56, .028, 12, 72).rotateX(Math.PI / 2), mats.gold); cageRing.castShadow = true; G.cage.add(cageRing);
+  for (let k = 0; k < 3; k++) {
+    const a = k * TAU / 3;
+    const br = new THREE.Mesh(new THREE.BoxGeometry(.5, .03, .07), mats.brass); br.position.set(.3 * Math.cos(a), .02, -.3 * Math.sin(a)); br.rotation.y = a; br.castShadow = true; G.cage.add(br);
+    const jw = new THREE.Mesh(new THREE.SphereGeometry(.035, 16, 12), mats.ruby); jw.position.set(.5 * Math.cos(a), .05, -.5 * Math.sin(a)); G.cage.add(jw);
+  }
+  G.esc = new THREE.Mesh(extrudeGear(gearShape(15, .026, 0), .02), mats.steel); G.esc.position.set(.36 * Math.cos(1), .045, -.36 * Math.sin(1)); G.cage.add(G.esc);
+  G.bal = new THREE.Group(); G.bal.position.y = .08; tb.add(G.bal);
+  G.bal.add(new THREE.Mesh(new THREE.TorusGeometry(.32, .02, 10, 64).rotateX(Math.PI / 2), mats.gold));
+  [0, Math.PI / 2].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(.64, .012, .025), mats.gold); sp.rotation.y = a; G.bal.add(sp); });
+  for (let k = 0; k < 8; k++) { const sc = new THREE.Mesh(new THREE.SphereGeometry(.022, 10, 8), mats.steel); sc.position.set(.345 * Math.cos(k * TAU / 8), 0, -.345 * Math.sin(k * TAU / 8)); G.bal.add(sc); }
+  const sp = []; for (let t = 0; t < 7 * TAU; t += .2) { const r = .07 + .028 * t / TAU; sp.push(new THREE.Vector3(r * Math.cos(t), .1, -r * Math.sin(t))); }
+  tb.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sp), 300, .004, 5), mats.steel));
+}
+
+/* ── 中央立柱與太陽 ── */
+function buildCore() {
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(.05, .07, SUN_Y + .95, 24), mats.brass);
+  col.position.y = (SUN_Y - .95) / 2; col.castShadow = true; scene.add(col);
+  [-.2, .35, .8, 1.25].forEach(y => { const c = new THREE.Mesh(new THREE.TorusGeometry(.085, .028, 12, 32).rotateX(Math.PI / 2), mats.gold); c.position.y = y; c.castShadow = true; scene.add(c); });
+  const sunTex = canvasTex(512, 256, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#a8662f'); g.addColorStop(.5, '#d0905a'); g.addColorStop(1, '#94562a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    const r = rnd(3); for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(150,90,20,${r() * .25})`; ctx.beginPath(); ctx.arc(r() * w, r() * h, r() * 4 + 1, 0, TAU); ctx.fill(); }
+  });
+  refs.sun = new THREE.Mesh(new THREE.SphereGeometry(.36, 64, 40), new THREE.MeshStandardMaterial({ map: sunTex, color: 0xffffff, emissive: 0xc85a1a, emissiveIntensity: .3, metalness: .85, roughness: .32 }));
+  refs.sun.position.y = SUN_Y; scene.add(refs.sun);
+  refs.sunBand = new THREE.Mesh(new THREE.TorusGeometry(.5, .018, 10, 96).rotateX(Math.PI / 2), mats.gold);
+  refs.sunBand.position.y = SUN_Y; refs.sunBand.rotation.z = deg(14); refs.sunBand.castShadow = true; scene.add(refs.sunBand);
+  tex.glow = canvasTex(256, 256, (ctx, w) => {
+    const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,214,130,.9)'); g.addColorStop(.25, 'rgba(255,190,90,.35)'); g.addColorStop(1, 'rgba(255,180,80,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, w);
+  });
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex.glow, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .75 }));
+  halo.scale.set(2.6, 2.6, 1); halo.position.y = SUN_Y; scene.add(halo);
+}
+
+/* ── 行星：金屬與寶石材質、可見自轉、軌道金屬環、懸臂與光跡 ── */
+function planetTexture(kind) {
+  return canvasTex(1024, 512, (ctx, w, h) => {
+    const r = rnd(kind.length * 97 + 11);
+    if (kind === 'lapis') {
+      ctx.fillStyle = '#1c3f8f'; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 700; i++) { ctx.fillStyle = `hsla(${215 + r() * 15},${55 + r() * 25}%,${18 + r() * 30}%,.35)`; ctx.beginPath(); ctx.ellipse(r() * w, r() * h, r() * 40 + 6, r() * 18 + 4, r() * 3, 0, TAU); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(230,236,255,.18)'; ctx.lineWidth = 2;
+      for (let i = 0; i < 14; i++) { ctx.beginPath(); let x = r() * w, y = r() * h; ctx.moveTo(x, y); for (let k = 0; k < 6; k++) { x += r() * 60 - 20; y += r() * 30 - 15; ctx.lineTo(x, y); } ctx.stroke(); }
+      for (let i = 0; i < 520; i++) { ctx.fillStyle = `rgba(240,205,110,${.5 + r() * .5})`; ctx.beginPath(); ctx.arc(r() * w, r() * h, r() * 2.2 + .6, 0, TAU); ctx.fill(); }
+    } else if (kind === 'copper' || kind === 'gold') {
+      ctx.fillStyle = kind === 'copper' ? '#a85a34' : '#b8804c'; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 300; i++) { ctx.fillStyle = `rgba(${kind === 'copper' ? '90,35,15' : '120,80,20'},${r() * .12})`; ctx.fillRect(0, r() * h, w, r() * 3); }
+      ctx.strokeStyle = kind === 'copper' ? 'rgba(60,20,6,.75)' : 'rgba(90,55,10,.7)'; ctx.lineWidth = 3;
+      for (let k = 0; k <= 12; k++) { ctx.beginPath(); ctx.moveTo(k * w / 12, 0); ctx.lineTo(k * w / 12, h); ctx.stroke(); }
+      for (let k = 1; k < 6; k++) { ctx.beginPath(); ctx.moveTo(0, k * h / 6); ctx.lineTo(w, k * h / 6); ctx.stroke(); }
+      if (kind === 'gold') { ctx.fillStyle = 'rgba(90,55,10,.8)'; for (let k = 0; k < 48; k++) { ctx.beginPath(); ctx.arc((k + .5) * w / 48, h / 2, 5, 0, TAU); ctx.fill(); } }
+    } else {
+      ctx.fillStyle = '#c9ccd3'; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 160; i++) { const x = r() * w, y = r() * h, rr = r() * 18 + 3; ctx.fillStyle = `rgba(70,75,85,${.15 + r() * .25})`; ctx.beginPath(); ctx.arc(x, y, rr, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x - 1, y - 1, rr, Math.PI, 1.8 * Math.PI); ctx.stroke(); }
+    }
+  });
+}
+function makeTrail(R) {
+  const N = 64, geo = new THREE.BufferGeometry();
+  const pos = new Float32Array((N + 1) * 4 * 3), col = new Float32Array((N + 1) * 4 * 3), idx = [];
+  for (let k = 0; k < N; k++) {
+    const a = k * 4, b = (k + 1) * 4;
+    idx.push(a, b, a + 1, a + 1, b, b + 1, a + 2, b + 2, a + 3, a + 3, b + 2, b + 3);
+  }
+  geo.setIndex(idx);
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  mesh.frustumCulled = false;
+  return { mesh, N, pos, col, R };
+}
+function updateTrail(tr, angDeg, len, bright, width) {
+  const { N, pos, col, R } = tr;
+  for (let k = 0; k <= N; k++) {
+    const f = k / N, a = deg(angDeg - len * f), w = width * (1 - f) + .004, fade = bright * Math.pow(1 - f, 1.7);
+    const c = Math.cos(a), s = -Math.sin(a), i = k * 12;
+    pos.set([(R - w) * c, 0, (R - w) * s, (R + w) * c, 0, (R + w) * s, R * c, -w, R * s, R * c, w, R * s], i);
+    for (let v = 0; v < 4; v++) col.set([1 * fade, .82 * fade, .48 * fade], i + v * 3);
+  }
+  tr.mesh.geometry.attributes.position.needsUpdate = true;
+  tr.mesh.geometry.attributes.color.needsUpdate = true;
+}
+function buildBodies() {
+  const look = {
+    day:   () => new THREE.MeshStandardMaterial({ map: planetTexture('copper'), metalness: 1, roughness: .3, emissive: 0x000000 }),
+    earth: () => new THREE.MeshPhysicalMaterial({ map: planetTexture('lapis'), metalness: .15, roughness: .22, clearcoat: 1, clearcoatRoughness: .08, emissive: 0x000000 }),
+    year:  () => new THREE.MeshStandardMaterial({ map: planetTexture('gold'), metalness: 1, roughness: .22, emissive: 0x000000 }),
+  };
+  BODIES.forEach(o => {
+    const b = { ...o, omega: 0, prev: null, spinA: 0 };
+    const { node, plane } = makeRig(o);
+    b.plane = plane; b.nodeG = node;
+    // 金屬軌道環（每條獨立材質，才能單獨發光）
+    b.hoopMat = mats.brass.clone();
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(o.R, .022, 12, 260).rotateX(Math.PI / 2), b.hoopMat);
+    hoop.castShadow = true; plane.add(hoop);
+    // 光跡
+    b.trail = makeTrail(o.R); plane.add(b.trail.mesh);
+    // 懸臂與行星
+    b.pivot = new THREE.Group(); plane.add(b.pivot);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.018, .022, o.R - .45, 10).rotateZ(Math.PI / 2), mats.brassDark);
+    arm.position.x = (o.R + .45) / 2; arm.castShadow = true; b.pivot.add(arm);
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(o.size * .45, o.size * .3, o.size * .5, 20), mats.gold);
+    cup.position.set(o.R, -o.size * .95, 0); b.pivot.add(cup);
+    b.mesh = new THREE.Mesh(new THREE.SphereGeometry(o.size, 64, 40), look[o.key]());
+    b.mesh.position.x = o.R; b.mesh.rotation.z = deg(18); b.mesh.castShadow = true;
+    b.mesh.userData.key = o.key; b.pivot.add(b.mesh); refs.pickables.push(b.mesh);
+    if (o.key === 'year') {                 // 歲星外圍的渾儀環
+      b.band = new THREE.Mesh(new THREE.TorusGeometry(o.size * 1.35, .012, 8, 80), mats.gold);
+      b.band.position.x = o.R; b.band.rotation.set(deg(70), 0, deg(20)); b.band.castShadow = true; b.pivot.add(b.band);
+    }
+    if (o.key === 'earth') {                // 月球：地球的子系統
+      b.moonSys = new THREE.Group(); b.moonSys.position.x = o.R; b.moonSys.rotation.x = deg(MOON.inc); b.pivot.add(b.moonSys);
+      b.moonSys.add(new THREE.Mesh(new THREE.TorusGeometry(MOON.R, .006, 6, 120).rotateX(Math.PI / 2), mats.steel));
+      b.moonPivot = new THREE.Group(); b.moonSys.add(b.moonPivot);
+      b.moon = new THREE.Mesh(new THREE.SphereGeometry(MOON.size, 40, 28), new THREE.MeshStandardMaterial({ map: planetTexture('moon'), metalness: .85, roughness: .32, emissive: 0x000000 }));
+      b.moon.position.x = MOON.R; b.moon.castShadow = true; b.moon.userData.key = 'moon';
+      b.moonPivot.add(b.moon); refs.pickables.push(b.moon);
+      const ma = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, MOON.R, 6).rotateZ(Math.PI / 2), mats.steel); ma.position.x = MOON.R / 2; b.moonPivot.add(ma);
+    }
+    // 預覽殘影：滑鼠停在月曆日期上時，顯示那一天的行星位置
+    const g = makeRig(o);
+    b.ghost = { node: g.node, plane: g.plane, pivot: new THREE.Group() };
+    g.plane.add(b.ghost.pivot);
+    const gm = new THREE.Mesh(new THREE.SphereGeometry(o.size, 32, 20), new THREE.MeshBasicMaterial({ color: LINK_HEX[o.key], transparent: true, opacity: .45, depthWrite: false }));
+    gm.position.x = o.R; b.ghost.pivot.add(gm);
+    const gs = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex.glow, color: LINK_HEX[o.key], blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .8 }));
+    gs.scale.set(o.size * 5, o.size * 5, 1); gs.position.x = o.R; b.ghost.pivot.add(gs);
+    g.node.visible = false;
+    refs.bodies.push(b);
+  });
+}
+function makeRig(o) {
+  const node = new THREE.Group(); node.position.y = SUN_Y; node.rotation.y = deg(o.node); scene.add(node);
+  const inc = new THREE.Group(); inc.rotation.x = deg(o.inc); node.add(inc);
+  const plane = new THREE.Group(); plane.rotation.y = deg(-o.node); inc.add(plane);
+  return { node, plane };
+}
+/* ── 上鍊鑰匙：插在木座側面，轉動它可逐日推進 ── */
+function buildCrank() {
+  const a = deg(-28), g = new THREE.Group();
+  g.position.set(4.12 * Math.cos(a), -1.42, -4.12 * Math.sin(a)); g.rotation.y = a; scene.add(g);
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2e2a28, metalness: .9, roughness: .38, emissive: 0x000000 });
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .04, 32).rotateZ(Math.PI / 2), mats.brass); plate.position.x = .02; g.add(plate);
+  refs.crankSpin = new THREE.Group(); g.add(refs.crankSpin);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .5, 16).rotateZ(Math.PI / 2), iron); shaft.position.x = .27; refs.crankSpin.add(shaft);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .06, 20).rotateZ(Math.PI / 2), iron); collar.position.x = .45; refs.crankSpin.add(collar);
+  const bow = new THREE.Mesh(new THREE.TorusGeometry(.17, .04, 14, 40), iron); bow.position.x = .66; bow.castShadow = true; refs.crankSpin.add(bow);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  hit.position.x = .55; hit.userData.key = 'crank'; refs.crankSpin.add(hit); refs.pickables.push(hit);
+  refs.crankMat = iron;
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   木座日期窗：會滾動的數字輪（公曆、農曆）與月相窗
+   每個數字輪是一個可旋轉的圓筒，只露出正前方一格，就像機械錶的日期窗
+   ════════════════════════════════════════════════════════════ */
+const FACE_A = 4.3 * Math.cos(Math.PI / 12), FACE_Y = -1.53;
+const LP = ['初', '十', '二', '廿', '三'], LS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const drums = [];
+const wrapPi = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+function faceGroup(phiDeg) {
+  const g = new THREE.Group(), p = deg(phiDeg);
+  g.position.set(FACE_A * Math.sin(p), FACE_Y, FACE_A * Math.cos(p)); g.rotation.y = p; scene.add(g);
+  return g;
+}
+function drumTex(cells, arc, w, digit) {
+  const cp = 160, H = Math.max(64, Math.round(cp * w / arc));
+  return canvasTex(cells.length * cp, H, (ctx, W) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#d9ccad'); g.addColorStop(.5, '#f1e8d2'); g.addColorStop(1, '#d9ccad');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const size = Math.min(cp * .6, H * .8);
+    ctx.font = digit ? `700 ${size * 1.15}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif` : `900 ${size}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    cells.forEach((t, i) => {
+      ctx.fillStyle = 'rgba(70,40,15,.3)'; ctx.fillRect(i * cp, 0, 2, H);
+      ctx.save(); ctx.translate((i + .5) * cp, H / 2); ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#2a170a'; ctx.fillText(t, 0, digit ? size * .06 : size * .04); ctx.restore();
+    });
+  });
+}
+function addDrum(parent, x, cells, w, arc = .3, digit = false) {   // 圓筒半徑 = 格數 × 格高 ÷ 2π，需小於約 0.46 才不會露出窗框外
+  const N = cells.length, r = N * arc / TAU;
+  const side = new THREE.MeshStandardMaterial({ map: drumTex(cells, arc, w, digit), roughness: .5, metalness: 0 });
+  const geo = new THREE.CylinderGeometry(r, r, w, Math.max(48, N * 8), 1, false).rotateZ(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, [side, mats.brassDark, mats.brassDark]);
+  m.position.set(x, 0, .2 - r); parent.add(m);
+  const d = { mesh: m, N, a: 0, target: 0, idx: -1 }; drums.push(d);
+  return d;
+}
+function setDrum(d, i) {
+  if (i < 0 || d.idx === i) return;
+  d.idx = i;
+  const want = -TAU * (i + .5) / d.N;
+  d.target = d.a + wrapPi(want - d.a);
+}
+function roundRect(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+function rectHole(x0, x1, y0, y1) {
+  const h = new THREE.Path(); h.moveTo(x0, y0); h.lineTo(x1, y0); h.lineTo(x1, y1); h.lineTo(x0, y1); h.closePath(); return h;
+}
+function makePlaque(parent, w, h, holes, labels) {
+  const s = roundRect(w, h, .05); holes.forEach(hp => s.holes.push(hp));
+  const geo = new THREE.ExtrudeGeometry(s, { depth: .025, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 2, curveSegments: 28 });
+  const m = new THREE.Mesh(geo, mats.brass); m.position.z = .22; m.castShadow = m.receiveShadow = true;
+  m.userData.key = 'windows'; parent.add(m); refs.pickables.push(m);
+  const wall = (W, H, x, y) => { const b = new THREE.Mesh(new THREE.BoxGeometry(W, H, .22), mats.brassDark); b.position.set(x, y, .11); parent.add(b); };
+  wall(w, .025, 0, h / 2 - .0125); wall(w, .025, 0, -h / 2 + .0125); wall(.025, h, -w / 2 + .0125, 0); wall(.025, h, w / 2 - .0125, 0);
+  const W = 1024, H = Math.round(1024 * h / w);
+  const t = canvasTex(W, H, ctx => {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    labels.forEach(l => {
+      ctx.font = `900 ${Math.round(l.size * W / w)}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+      const x = (l.x / w + .5) * W, y = (.5 - l.y / h) * H;
+      ctx.fillStyle = 'rgba(255,225,170,.35)'; ctx.fillText(l.text, x + 1.5, y + 1.5);   // 刻字的亮邊
+      ctx.fillStyle = '#24130a'; ctx.fillText(l.text, x, y);
+    });
+  });
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: .6, metalness: .1, depthWrite: false }));
+  pl.position.z = .22 + .025 + .0095; parent.add(pl);
+}
+function buildWindows() {
+  const W = refs.win = {};
+  // 正面：公曆 年 月 日 星期
+  const F = faceGroup(0), hy = .15;
+  W.year = [-.86, -.70, -.54, -.38].map(x => addDrum(F, x, DIGITS, .15, .28, true));
+  W.mon = [-.06, .10].map(x => addDrum(F, x, DIGITS, .15, .28, true));
+  W.day = [.40, .56].map(x => addDrum(F, x, DIGITS, .15, .28, true));
+  W.week = addDrum(F, .87, ['日', '一', '二', '三', '四', '五', '六'], .18, .3);
+  makePlaque(F, 2.08, .8, [rectHole(-.945, -.295, -hy, hy), rectHole(-.145, .185, -hy, hy), rectHole(.315, .645, -hy, hy), rectHole(.775, .965, -hy, hy)],
+    [{ text: '年', x: -.22, y: 0, size: .13 }, { text: '月', x: .25, y: 0, size: .13 }, { text: '日', x: .71, y: 0, size: .13 }, { text: '星期', x: .87, y: .23, size: .07 }, { text: '公曆', x: 0, y: -.27, size: .08 }]);
+  // 左前方：農曆 干支年 月 日
+  const L = faceGroup(-30);
+  W.gan = addDrum(L, -.86, GAN.split(''), .2, .27);
+  W.zhi = addDrum(L, -.64, ZHI.split(''), .2, .23);
+  W.leap = addDrum(L, -.30, ['', '閏', '', '閏'], .13, .3);
+  W.lmon = addDrum(L, -.12, LMONTH, .2, .23);
+  W.pre = addDrum(L, .27, LP, .2, .3);
+  W.suf = addDrum(L, .49, LS, .2, .28);
+  makePlaque(L, 2.08, .8, [rectHole(-.97, -.53, -hy, hy), rectHole(-.375, -.01, -hy, hy), rectHole(.16, .6, -hy, hy)],
+    [{ text: '年', x: -.44, y: 0, size: .13 }, { text: '月', x: .075, y: 0, size: .13 }, { text: '農曆', x: .83, y: 0, size: .11 }, { text: '干支紀年', x: -.75, y: -.27, size: .06 }]);
+  // 右前方：月相窗（月相盤上畫著兩個月亮，每個朔望月轉半圈）
+  const M = faceGroup(30), base = -.05, R = .3, hr = .15;
+  const arch = new THREE.Path();
+  arch.moveTo(-R, base); arch.absarc(0, base, R, Math.PI, 0, true);
+  arch.absarc(hr, base, hr, 0, Math.PI, false); arch.absarc(-hr, base, hr, 0, Math.PI, false);
+  const discTex = canvasTex(512, 512, (ctx, w) => {
+    const c = w / 2, g = ctx.createRadialGradient(c, c, 0, c, c, c);
+    g.addColorStop(0, '#163a72'); g.addColorStop(1, '#0a1a3c'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, w);
+    const r = rnd(5); for (let i = 0; i < 160; i++) { ctx.fillStyle = `rgba(240,215,160,${.4 + r() * .6})`; ctx.beginPath(); ctx.arc(r() * w, r() * w, r() * 2.2 + .6, 0, TAU); ctx.fill(); }
+    [[c - 150, c], [c + 150, c]].forEach(([x, y]) => {
+      const mg = ctx.createRadialGradient(x - 30, y - 30, 10, x, y, 105);
+      mg.addColorStop(0, '#f6d9a0'); mg.addColorStop(.6, '#cf9a58'); mg.addColorStop(1, '#8a5a2a');
+      ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(x, y, 105, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(120,75,30,.35)';
+      [[-30, -20, 18], [25, 10, 24], [-10, 40, 14], [35, -40, 11]].forEach(([dx, dy, rr]) => { ctx.beginPath(); ctx.arc(x + dx, y + dy, rr, 0, TAU); ctx.fill(); });
+    });
+  });
+  W.moonDisc = new THREE.Mesh(new THREE.CircleGeometry(.34, 64), new THREE.MeshStandardMaterial({ map: discTex, roughness: .45, metalness: .3 }));
+  W.moonDisc.position.set(0, base, .2); M.add(W.moonDisc);
+  makePlaque(M, 1.15, .78, [arch], [{ text: '月相', x: 0, y: .31, size: .08 }]);
+}
+let winKey = '';
+function updateWindows(st, dt) {
+  const W = refs.win; if (!W || !sel) return;
+  const k = `${sel.y}-${sel.m}-${sel.d}`;
+  if (k !== winKey) {
+    winKey = k;
+    const ys = String(sel.y);
+    W.year.forEach((d, i) => setDrum(d, +ys[i]));
+    setDrum(W.mon[0], Math.floor(sel.m / 10)); setDrum(W.mon[1], sel.m % 10);
+    setDrum(W.day[0], Math.floor(sel.d / 10)); setDrum(W.day[1], sel.d % 10);
+    const solar = Solar.fromYmd(sel.y, sel.m, sel.d), lunar = solar.getLunar(), lm = lunar.getMonth(), dc = lunar.getDayInChinese();
+    setDrum(W.week, solar.getWeek());
+    setDrum(W.gan, lunar.getYearGanIndex()); setDrum(W.zhi, lunar.getYearZhiIndex());
+    setDrum(W.leap, lm < 0 ? 1 : 0); setDrum(W.lmon, Math.abs(lm) - 1);
+    setDrum(W.pre, LP.indexOf(dc[0])); setDrum(W.suf, LS.indexOf(dc[1]));
+  }
+  const kk = reduced ? 1 : Math.min(1, dt * 9);
+  drums.forEach(d => { d.a += (d.target - d.a) * kk; d.mesh.rotation.x = d.a; });
+  W.moonDisc.rotation.z = -deg(st.E / 2);
+}
+/* ── 鏡頭：近看日期窗 ── */
+let camMove = null;
+function focusWindows() {
+  if (!renderer) return;
+  controls.minDistance = 2; controls.maxPolarAngle = deg(92);
+  camTween = null; userZoomed = true;
+  const aspect = stage.clientWidth / stage.clientHeight, back = aspect < 1 ? 15.5 : 12.6;
+  const p1 = new THREE.Vector3(0, -.75, back), t1 = new THREE.Vector3(0, -1.75, 2.6);
+  $('hint').style.opacity = 0;
+  if (reduced) { camera.position.copy(p1); controls.target.copy(t1); return; }
+  camMove = { p0: camera.position.clone(), q0: controls.target.clone(), p1, t1, t0: performance.now(), dur: 1300 };
+}
+
+/* ── 尺寸 ── */
+let userZoomed = false;
+function fitCamera() {
+  const w = stage.clientWidth, h = stage.clientHeight, aspect = w / h;
+  camera.aspect = aspect;
+  const vf = deg(camera.fov), hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
+  const dist = 5.9 / Math.sin(Math.min(vf, hf) / 2) * (aspect < 1 ? .95 : .92);
+  controls.minDistance = dist * .55; controls.maxDistance = dist * 1.5;
+  camera.updateProjectionMatrix();
+  return dist;
+}
+function resetView() {
+  camMove = null; controls.target.set(0, .9, 0); controls.maxPolarAngle = deg(80);
+  const dist = fitCamera(), el = deg(22);
+  camera.position.set(0, controls.target.y + dist * Math.sin(el), dist * Math.cos(el));
+  controls.update();
+}
+function resize() {
+  if (!renderer) return;
+  renderer.setSize(stage.clientWidth, stage.clientHeight, false);
+  if (!userZoomed) resetView(); else fitCamera();
+  sizeDust();
+}
+
+/* ════════════════════════════════════════════════════════════
+   七、操作天文儀：拖曳地球／刻度環轉日期、拖曳月份環換月、轉鑰匙逐日推進
+   ════════════════════════════════════════════════════════════ */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), dialPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.03);
+let hoverKey = null, drag = null, lastRing = 0, ringOffset = 0;
+function setRay(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+}
+function dialAngle() {
+  const p = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(dialPlane, p)) return null;
+  return { th: norm(Math.atan2(-p.z, p.x) / D2R), r: Math.hypot(p.x, p.z) };
+}
+function pick(ev) {
+  setRay(ev);
+  const hit = ray.intersectObjects(refs.pickables, false)[0];
+  if (hit) return { type: 'body', key: hit.object.userData.key };
+  const a = dialAngle(); if (!a) return null;
+  const { r: rr, th } = a, lam = norm(th - 180);
+  if (rr > 2.52 && rr < 3.05) { const j = ((Math.round(-(th - norm(lastRing)) / 30) % 12) + 12) % 12; return { type: 'month', j, r0: 2.52, r1: 3.05, a0: -30 * j - 15 + lastRing, len: 30 }; }
+  if (rr > 3.1 && rr < 3.62) { const b = ((Math.round((lam - 270) / 30) % 12) + 12) % 12; return { type: 'branch', b, r0: 3.11, r1: 3.61, a0: 255 + 30 * b + 180, len: 30 }; }
+  if (rr > 3.66 && rr < 4.3) { const i = Math.floor(lam / 15) % 24; return { type: 'term', i, r0: 3.67, r1: 4.29, a0: 15 * i + 180, len: 15 }; }
+  return null;
+}
+const linkOf = h => !h ? null : h.type === 'body' ? (h.key === 'pointer' ? 'earth' : (h.key === 'crank' || h.key === 'windows') ? null : h.key) : (h.type === 'term' || h.type === 'branch') ? 'earth' : null;
+const dragKind = h => !h ? null : (h.type === 'body' && (h.key === 'earth' || h.key === 'pointer')) || h.type === 'term' || h.type === 'branch' ? 'year'
+  : h.type === 'month' ? 'month' : (h.type === 'body' && h.key === 'crank') ? 'crank' : null;
+function setHover(h) {
+  if (h && h.type !== 'body') {
+    refs.hover.geometry.dispose();
+    refs.hover.geometry = new THREE.RingGeometry(h.r0, h.r1, 16, 1, deg(h.a0), deg(h.len)).rotateX(-Math.PI / 2);
+    refs.hover.position.y = h.type === 'month' ? .05 : .008; refs.hover.visible = true;
+  } else refs.hover.visible = false;
+  refs.crankMat.emissive.setHex(h && h.key === 'crank' ? 0x3a2410 : 0);
+  setLink(linkOf(h));
+  const c = renderer.domElement;
+  c.classList.toggle('pick', !!h);
+  c.style.cursor = dragKind(h) ? 'grab' : '';
+}
+function bindPointer() {
+  const el = renderer.domElement;
+  // 在外層以捕獲階段攔截，拖曳部件時不觸發視角旋轉
+  glBox.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const h = pick(e), kind = dragKind(h);
+    drag = { h, kind, x0: e.clientX, y0: e.clientY, moved: false, T0: Torr, acc: 0 };
+    if (!kind) return;
+    e.stopPropagation(); e.preventDefault();
+    const a = dialAngle(); drag.th = a ? a.th : 0;
+    drag.T0 = targetT(sel);
+    controls.enabled = false;
+    el.style.cursor = 'grabbing';
+    setPlaying(false);
+  }, { capture: true });
+  window.addEventListener('pointermove', e => {
+    if (drag && drag.kind) {
+      if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 5) drag.moved = true;
+      if (!drag.moved) return;
+      setRay(e);
+      if (drag.kind === 'crank') {
+        const days = Math.round(((e.clientX - drag.x0) - (e.clientY - drag.y0)) / 9);
+        scrubTo(drag.T0 + days);
+      } else {
+        const a = dialAngle(); if (!a) return;
+        const d = wrap180(a.th - drag.th); drag.th = a.th; drag.acc += d;
+        if (drag.kind === 'year') scrubTo(drag.T0 + drag.acc * 365.2422 / 360);
+        else ringOffset = drag.acc;
+      }
+      return;
+    }
+    if (e.pointerType !== 'mouse' || e.buttons || e.target !== el) return;
+    const h = pick(e), k = h ? h.type + (h.key || h.j || h.b || h.i) : null;
+    if (k !== hoverKey) { hoverKey = k; setHover(h); }
+  });
+  // 瀏覽器接手捲動時會取消拖曳，這時要恢復視角控制
+  window.addEventListener('pointercancel', () => { if (drag) { drag = null; scrubbing = false; controls.enabled = true; el.style.cursor = ''; } });
+  window.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const d = drag; drag = null; controls.enabled = true; el.style.cursor = '';
+    if (d.kind && d.moved) {
+      scrubbing = false;
+      if (d.kind === 'month') {
+        const k = Math.round(d.acc / 30);
+        ringOffset = d.acc - k * 30;
+        if (k) shiftMonth(k);
+      } else selectDate(sel.y, sel.m, sel.d, { dur: 450 });   // 放開時吸附到當日正午
+      return;
+    }
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6) return;
+    const h = d.h; if (!h) return;
+    if (h.type === 'body') {
+      if (h.key === 'crank') { const n = ymdOf(targetT(sel) + 1); selectDate(n.y, n.m, n.d); }
+      else if (h.key === 'windows') focusWindows();
+      else showBody(h.key === 'pointer' ? 'earth' : h.key);
+    }
+    else if (h.type === 'month') gotoMonth(h.j + 1);
+    else if (h.type === 'branch') showBranch(h.b);
+    else if (h.type === 'term') showTerm(h.i);
+  });
+  el.addEventListener('pointerleave', () => { if (!drag) { hoverKey = null; setHover(null); } });
+  controls.addEventListener('start', () => { $('hint').style.opacity = 0; });
+  el.addEventListener('wheel', () => { userZoomed = true; }, { passive: true });
+}
+/* 拖曳中：時間直接跟著手走，日曆即時翻頁 */
+let scrubbing = false;
+function scrubTo(T) {
+  T = clamp(T, jdOf(YEAR_MIN, 1, 1) + .5, jdOf(YEAR_MAX, 12, 31) + .5);
+  tween = null; scrubbing = true; Torr = T;
+  const d = ymdOf(T);
+  if (!sameDay(d, sel)) selectDate(d.y, d.m, d.d, { follow: true });
+}
+
+/* ── 對應關係：同一個資訊在面板與天文儀上一起發光 ── */
+let litKey = null;
+function setLink(key) {
+  if (key === litKey) return;
+  litKey = key;
+  document.querySelectorAll('[data-link]').forEach(el => el.classList.toggle('lit', el.dataset.link === key));
+  if (!renderer) return;
+  refs.bodies.forEach(b => {
+    const on = b.key === key;
+    b.mesh.material.emissive.setHex(on ? 0x4a2c10 : 0);
+    b.hoopMat.emissive.setHex(on ? LINK_HEX[b.key] : 0);
+    b.hoopMat.emissiveIntensity = on ? .55 : 0;
+    if (b.moon) b.moon.material.emissive.setHex(key === 'moon' ? 0x40444c : 0);
+  });
+  refs.needleMat.emissive.setHex(key === 'earth' ? 0x5a3a12 : 0);
+  refs.termHi.children[0].material.opacity = key === 'earth' ? .42 : .2;
+}
+function bindPanelLinks() {
+  document.querySelectorAll('[data-link]').forEach(el => {
+    el.addEventListener('mouseenter', () => setLink(el.dataset.link));
+    el.addEventListener('mouseleave', () => setLink(null));
+    el.addEventListener('focus', () => setLink(el.dataset.link));
+    el.addEventListener('blur', () => setLink(null));
+  });
+  document.querySelectorAll('.pillar[data-link]').forEach(el => {
+    const go = () => { focusOn(el.dataset.link); showBody(el.dataset.link); };
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  });
+  document.querySelectorAll('.facts div[data-link]').forEach(el => el.addEventListener('click', e => {
+    if (e.target.closest('.link')) return;
+    focusOn(el.dataset.link); showBody(el.dataset.link);
+  }));
+}
+
+/* ── 鏡頭聯動：把指定部件轉到觀看者正前方 ── */
+let camTween = null;
+function focusOn(target) {
+  if (!renderer) return;
+  let az;
+  if (typeof target === 'number') az = target;
+  else {
+    const b = refs.bodies.find(x => x.key === (target === 'moon' ? 'earth' : target));
+    if (!b) return;
+    const v = new THREE.Vector3(); (target === 'moon' ? b.moon : b.mesh).getWorldPosition(v);
+    az = Math.atan2(-v.z, v.x) / D2R;
+  }
+  const off = camera.position.clone().sub(controls.target);
+  const cur = Math.atan2(-off.z, off.x) / D2R;
+  const to = cur + wrap180(az - cur);
+  if (reduced) { setCamAz(to); return; }
+  camTween = { from: cur, to, t0: performance.now(), dur: 1100 };
+}
+function setCamAz(az) {
+  const off = camera.position.clone().sub(controls.target);
+  const d = off.length(), el = Math.asin(clamp(off.y / d, -1, 1));
+  camera.position.set(controls.target.x + d * Math.cos(el) * Math.cos(az * D2R), controls.target.y + d * Math.sin(el), controls.target.z - d * Math.cos(el) * Math.sin(az * D2R));
+}
+
+/* ── 日期預覽：行星殘影 ── */
+let previewT = null;
+function setPreview(T) {
+  previewT = T;
+  if (!renderer) return;
+  if (T == null) { refs.bodies.forEach(b => b.ghost.node.visible = false); refs.ghostPointer.visible = false; return; }
+  const st = computeState(T);
+  refs.bodies.forEach(b => {
+    const nd = deg(b.node + b.prec * st.days);
+    b.ghost.node.visible = true; b.ghost.node.rotation.y = nd; b.ghost.plane.rotation.y = -nd;
+    b.ghost.pivot.rotation.y = deg(st[b.key]);
+  });
+  refs.ghostPointer.visible = true; refs.ghostPointer.rotation.y = deg(st.earth);
+}
+
+/* ════════════════════════════════════════════════════════════
+   八、背景星塵
+   ════════════════════════════════════════════════════════════ */
+const dust = $('dust'), dctx = dust.getContext('2d');
+let stars = [];
+function sizeDust() {
+  const r = dust.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  dust.width = Math.round(r.width * dpr); dust.height = Math.round(r.height * dpr);
+  dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  stars = Array.from({ length: Math.round(r.width * r.height / 4800) }, () => ({ x: Math.random() * r.width, y: Math.random() * r.height, r: Math.random() * 1.2 + .3, a: Math.random() * TAU, s: Math.random() * .6 + .2, gold: Math.random() < .3 }));
+}
+function drawDust(dt, moving) {
+  const w = dust.clientWidth, h = dust.clientHeight;
+  dctx.clearRect(0, 0, w, h);
+  stars.forEach(s => {
+    if (moving) { s.x += s.s * 4 * dt; s.y -= s.s * 2.2 * dt; s.a += dt * s.s * 1.6; if (s.x > w) s.x = 0; if (s.y < 0) s.y = h; }
+    const al = .25 + .35 * (.5 + .5 * Math.sin(s.a));
+    dctx.fillStyle = s.gold ? `rgba(240,210,140,${al})` : `rgba(200,215,240,${al})`;
+    dctx.beginPath(); dctx.arc(s.x, s.y, s.r, 0, TAU); dctx.fill();
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   九、時間與主迴圈：天文儀與日曆共用同一個時間 Torr
+   ════════════════════════════════════════════════════════════ */
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let speed = 4, playing = false;
+let sel = null, Torr = 0, tween = null, alpha = 0, cageA = 0, clock = 0;
+const today = (() => { const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() }; })();
+const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const targetT = s => jdOf(s.y, s.m, s.d) + .5;
+
+function travelTo(T1, dur) {
+  if (reduced || dur <= 0) { Torr = T1; tween = null; return; }
+  const dT = T1 - Torr;
+  if (Math.abs(dT) > 400) {
+    const s0 = computeState(Torr), s1 = computeState(T1), sg = Math.sign(dT), d = {};
+    ['earth', 'moon', 'day', 'year'].forEach(k => d[k] = sg > 0 ? norm(s1[k] - s0[k]) : -norm(s0[k] - s1[k]));
+    d.ring = s1.ring - s0.ring; d.days = s1.days - s0.days;
+    tween = { kind: 'angle', s0, s1, d, t0: performance.now(), dur, T1 };
+  } else tween = { kind: 'time', T0: Torr, T1, t0: performance.now(), dur };
+}
+function setPlaying(on) {
+  if (on === playing) return;
+  playing = on;
+  const b = $('playBtn');
+  b.setAttribute('aria-pressed', on);
+  b.textContent = on ? '❚❚ 暫停' : '▶ 推進時光';
+  if (on) { tween = null; Torr = targetT(sel); }
+}
+
+let lastFrame = performance.now(), cachedT = null, cachedSt = null, lastGearT = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - lastFrame) / 1000); lastFrame = now;
+  let st, dGear = 0;
+  if (tween) {
+    const e = ease(clamp((now - tween.t0) / tween.dur, 0, 1));
+    if (tween.kind === 'time') { Torr = tween.T0 + (tween.T1 - tween.T0) * e; st = computeState(Torr); dGear = Torr - lastGearT; }
+    else { st = { ...tween.s1 }; ['earth', 'moon', 'day', 'year', 'ring', 'days'].forEach(k => st[k] = tween.s0[k] + tween.d[k] * e); dGear = 14 * dt * Math.sign(tween.d.earth || 1); }
+    if (e >= 1) { Torr = tween.T1; tween = null; st = computeState(Torr); }
+  } else {
+    if (playing) {
+      const nT = Torr + dt * speed;
+      if (ymdOf(nT).y > YEAR_MAX) setPlaying(false);
+      else { Torr = nT; const d = ymdOf(Torr); if (!sameDay(d, sel)) selectDate(d.y, d.m, d.d, { follow: true }); }
+    }
+    if (Torr !== cachedT) { cachedSt = computeState(Torr); cachedT = Torr; }
+    st = cachedSt;
+    dGear = Torr - lastGearT;
+  }
+  lastGearT = Torr;
+  if (!(drag && drag.kind === 'month')) ringOffset *= Math.exp(-dt * 7);
+  const shown = Math.abs(ringOffset) > .01 ? { ...st, ring: st.ring + ringOffset } : st;
+  updateReadout();
+  if (renderer) {
+    // 齒輪由時間推動：日期走多少，齒輪就轉多少
+    alpha += clamp(dGear * .55, -.3, .3);
+    if (!reduced) { clock += dt; cageA += dt * TAU / 60; }
+    refs.crankSpin.rotation.x = -(Torr % 360) * deg(40);   // 鑰匙每推進一天轉 40°
+    applyState(shown, dt);
+    updateWindows(shown, dt);
+    if (camMove) {
+      const e = ease(clamp((now - camMove.t0) / camMove.dur, 0, 1));
+      camera.position.lerpVectors(camMove.p0, camMove.p1, e); controls.target.lerpVectors(camMove.q0, camMove.t1, e);
+      if (e >= 1) camMove = null;
+    }
+    applyGears();
+    if (camTween) {
+      const e = ease(clamp((now - camTween.t0) / camTween.dur, 0, 1));
+      setCamAz(camTween.from + (camTween.to - camTween.from) * e);
+      if (e >= 1) camTween = null;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  drawDust(dt, !reduced);
+  requestAnimationFrame(frame);
+}
+
+let lastReadout = '';
+function updateReadout() {
+  let label = '儀器指示', cls = '', d = sel || ymdOf(Torr);
+  if (previewT != null) { label = '預覽'; cls = 'preview'; d = ymdOf(previewT); }
+  else if (scrubbing || playing) { label = playing ? '推進中' : '轉動中'; cls = 'live'; d = ymdOf(Torr); }
+  const key = label + d.y + '-' + d.m + '-' + d.d;
+  if (key === lastReadout) return;
+  lastReadout = key;
+  $('orrLabel').textContent = label;
+  $('orrDate').textContent = `${d.y}年${d.m}月${d.d}日`;
+  $('readout').className = 'readout-box ' + cls;
+}
+
+function applyState(st, dt) {
+  lastRing = st.ring;
+  refs.pointer.rotation.y = deg(st.earth);
+  refs.monthRing.rotation.y = deg(st.ring);
+  const lam = norm(st.earth - 180), ti = Math.floor(lam / 15) % 24, bi = ((Math.floor(norm(lam - 255) / 30) % 12) + 12) % 12;
+  refs.termHi.rotation.y = deg(15 * ti + 180);
+  refs.branchHi.rotation.y = deg(255 + 30 * bi + 180);
+  refs.sunBand.rotation.y += dt * .4 * (reduced ? 0 : 1);
+  refs.sun.rotation.y += dt * .15 * (reduced ? 0 : 1);
+  refs.bodies.forEach(b => {
+    const ang = st[b.key];
+    if (b.prev !== null && dt > 0) { const w = wrap180(ang - b.prev) / dt; b.omega += (w - b.omega) * Math.min(1, dt * 8); }
+    b.prev = ang;
+    b.pivot.rotation.y = deg(ang);
+    // 軌道面緩慢旋進：傾斜方向隨時間轉動，軌道彼此交錯的角度一直在變
+    const nd = deg(b.node + b.prec * st.days);
+    b.nodeG.rotation.y = nd; b.plane.rotation.y = -nd;
+    b.spinA += dt * b.spin * (1 + Math.abs(b.omega) / 20) * (reduced ? 0 : 1);
+    b.mesh.rotation.y = b.spinA;
+    if (b.band) b.band.rotation.y = -b.spinA * .6;
+    const dir = Math.abs(b.omega) > .05 ? Math.sign(b.omega) : 1;
+    const len = 5 + Math.min(140, Math.abs(b.omega) * .9);
+    const bright = clamp(.18 + Math.abs(b.omega) / 50, .18, .95);
+    updateTrail(b.trail, ang - (dir < 0 ? 0 : 0), dir * len, bright, b.size * .45);
+    if (b.key === 'earth') b.moonPivot.rotation.y = deg(st.moon - st.earth);
+  });
+}
+function applyGears() {
+  const G = refs.gears;
+  G.sun.rotation.y = alpha;
+  let p0 = 0;
+  G.planets.forEach((p, k) => {
+    const th = p.psi + Math.PI - Math.PI / 18 + (p.psi - alpha) * 24 / 18;
+    if (k === 0) p0 = th;
+    p.mesh.rotation.y = th;
+  });
+  const v = (0 - p0) * 18 / TAU;
+  G.ring.rotation.y = -(TAU / 60) * (v - .5);
+  G.cage.rotation.y = cageA;
+  G.bal.rotation.y = Math.sin(clock * TAU * 1.25) * 3.6;
+  const s5 = clock * 5, fr = s5 - Math.floor(s5);
+  G.esc.rotation.y = (Math.floor(s5) + Math.min(1, fr * 4)) * TAU / 15;
+}
+
+/* ════════════════════════════════════════════════════════════
+   十、選擇日期與資訊面板
+   ════════════════════════════════════════════════════════════ */
+function selectDate(y, m, d, opts = {}) {
+  const msg = $('msg'); msg.textContent = '';
+  if (y < YEAR_MIN || y > YEAR_MAX) { msg.textContent = `可查詢範圍為 ${YEAR_MIN} 至 ${YEAR_MAX} 年。`; y = clamp(y, YEAR_MIN, YEAR_MAX); }
+  d = clamp(d, 1, dim(y, m));
+  const prev = sel; sel = { y, m, d };
+  const T1 = targetT(sel), dT = Math.abs(T1 - Torr);
+  if (!opts.follow) {                     // follow：時間由拖曳或推進驅動，日曆只是跟著翻頁
+    setPlaying(false); scrubbing = false;
+    travelTo(T1, opts.dur != null ? opts.dur : dT <= 1.5 ? 800 : dT <= 40 ? 1300 : dT <= 400 ? 1800 : 2200);
+  }
+  if (!prev || prev.y !== y || prev.m !== m) renderGrid(); else markSelected();
+  repaintDial(lichunYear(T1));
+  updateInfo();
+  $('dateInput').value = `${y}-${pad(m)}-${pad(d)}`;
+  try { history.replaceState(null, '', `#${y}-${pad(m)}-${pad(d)}`); } catch (e) { /* 部分預覽環境不允許 */ }
+}
+function gotoMonth(m) { selectDate(sel.y, m, Math.min(sel.d, dim(sel.y, m))); }
+function shiftMonth(k) {
+  let y = sel.y, m = sel.m + k;
+  while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; }
+  if (y < YEAR_MIN || y > YEAR_MAX) { $('msg').textContent = `可查詢範圍為 ${YEAR_MIN} 至 ${YEAR_MAX} 年。`; return; }
+  selectDate(y, m, Math.min(sel.d, dim(y, m)));
+}
+function lunarParts(lunar) {
+  const lm = lunar.getMonth(), leap = lm < 0;
+  return { leap, name: (leap ? '閏' : '') + LMONTH[Math.abs(lm) - 1] + '月', day: lunar.getDayInChinese() };
+}
+const fmtTerm = t => `${t.m}月${t.d}日 ${pad(t.h)}:${pad(t.mi)}`;
+function termsAround(s) {
+  const jd = jdOf(s.y, s.m, s.d); ensureTerms(s.y);
+  let cur = null, next = null;
+  for (const t of terms) { const tj = jdOf(t.y, t.m, t.d); if (tj <= jd) cur = t; else { next = t; break; } }
+  return { cur, next };
+}
+function moonSvg(E) {
+  const R = 12, rx = Math.round(R * Math.abs(Math.cos(E * D2R)) * 100) / 100;
+  const d = E < 180 ? `M0,${-R}A${R},${R} 0 0 1 0,${R}A${rx},${R} 0 0 ${E < 90 ? 0 : 1} 0,${-R}Z`
+                    : `M0,${-R}A${R},${R} 0 0 0 0,${R}A${rx},${R} 0 0 ${E < 270 ? 0 : 1} 0,${-R}Z`;
+  return `<svg class="moon-disc" viewBox="-13 -13 26 26" aria-hidden="true"><circle r="12" fill="#1c2a47" stroke="rgba(234,208,140,.5)" stroke-width=".8"/><path d="${d}" fill="#efe6cc"/></svg>`;
+}
+function updateInfo() {
+  const { y, m, d } = sel, solar = Solar.fromYmd(y, m, d), lunar = solar.getLunar(), lp = lunarParts(lunar);
+  $('gMD').innerHTML = `${m}<small>月</small>${d}<small>日</small>`;
+  $('gYW').innerHTML = `<b>${y}</b>年　星期${WEEK[solar.getWeek()]}`;
+  const lmDays = LunarMonth.fromYm(lunar.getYear(), lunar.getMonth()).getDayCount();
+  $('lunarLine').innerHTML = `農曆 ${lunar.getYearInGanZhi()}年 ${lp.name}${lp.day} <span class="note">（${lp.name}${lmDays === 30 ? '大' : '小'}）</span>`;
+  const show = s => s[0] + '<br>' + s[1];
+  $('pY').innerHTML = show(lunar.getYearInGanZhiByLiChun());
+  $('pM').innerHTML = show(lunar.getMonthInGanZhiExact());
+  $('pD').innerHTML = show(lunar.getDayInGanZhiExact());
+  const { cur, next } = termsAround(sel), isTermDay = cur.y === y && cur.m === m && cur.d === d;
+  $('fCur').innerHTML = `<button class="link" data-term="${cur.idx}">${TERM[cur.idx]}</button><span class="muted">${isTermDay ? `今天 ${pad(cur.h)}:${pad(cur.mi)} 交節` : `自 ${fmtTerm(cur)} 起`}</span>`;
+  const days = jdOf(next.y, next.m, next.d) - jdOf(y, m, d);
+  $('fNext').innerHTML = `<button class="link" data-term="${next.idx}">${TERM[next.idx]}</button><span class="muted">${fmtTerm(next)}，還有 ${days} 天</span>`;
+  const E = moonElong(targetT(sel));
+  $('fMoon').innerHTML = `${moonSvg(E)}<span>${moonPhaseName(E)}</span><span class="muted">照明約 ${Math.round((1 - Math.cos(E * D2R)) / 2 * 100)}%</span>`;
+  $('fSx').innerHTML = `${SX[lunar.getYearZhiIndexByLiChun()]}<span class="muted">以立春為界</span>`;
+  document.querySelectorAll('.facts [data-term]').forEach(b => b.addEventListener('click', () => { focusOn(+b.dataset.term * 15 + 187.5); showTerm(+b.dataset.term); }));
+}
+function moonMini(E) {
+  const R = 5, rx = Math.round(R * Math.abs(Math.cos(E * D2R)) * 100) / 100;
+  const d = E < 180 ? `M0,${-R}A${R},${R} 0 0 1 0,${R}A${rx},${R} 0 0 ${E < 90 ? 0 : 1} 0,${-R}Z`
+                    : `M0,${-R}A${R},${R} 0 0 0 0,${R}A${rx},${R} 0 0 ${E < 270 ? 0 : 1} 0,${-R}Z`;
+  return `<svg class="mp" viewBox="-6 -6 12 12" aria-hidden="true"><circle r="5" fill="#1c2a47" stroke="rgba(217,222,230,.45)" stroke-width=".6"/><path d="${d}" fill="#e6e0cc"/></svg>`;
+}
+function renderGrid() {
+  const { y, m } = sel;
+  $('monthTitle').innerHTML = `<span>${y}</span>年<span>${m}</span>月`;
+  ensureTerms(y);
+  const grid = $('grid'); grid.innerHTML = '';
+  for (let i = 0; i < 7; i++) { const h = document.createElement('div'); h.className = 'wd'; h.textContent = WEEK[i]; h.setAttribute('role', 'columnheader'); grid.appendChild(h); }
+  const start = jdOf(y, m, 1) - Solar.fromYmd(y, m, 1).getWeek();
+  for (let i = 0; i < 42; i++) {
+    const c = ymdOf(start + i + .5);
+    if (c.y < YEAR_MIN || c.y > YEAR_MAX) { grid.appendChild(document.createElement('span')); continue; }
+    const lunar = Solar.fromYmd(c.y, c.m, c.d).getLunar(), lp = lunarParts(lunar);
+    const f0 = lunar.getFestivals()[0], fest = (f0 && FEST[f0]) || '', term = termByDate.get(`${c.y}-${c.m}-${c.d}`);
+    let sub = lp.day, mark = false;
+    if (fest) { sub = fest; mark = true; } else if (term) { sub = TERM[term.idx]; mark = true; } else if (lp.day === '初一') sub = lp.name;
+    const b = document.createElement('button');
+    b.className = 'cell' + (c.m !== m ? ' out' : '') + (i % 7 === 0 || i % 7 === 6 ? ' we' : '') + (mark ? ' mark' : '') + (sameDay(c, today) ? ' today' : '');
+    b.dataset.ymd = `${c.y}-${c.m}-${c.d}`;
+    b.setAttribute('aria-label', `${c.y}年${c.m}月${c.d}日，農曆${lp.name}${lp.day}${fest ? '，' + fest : ''}${term ? '，' + TERM[term.idx] : ''}`);
+    const cT = jdOf(c.y, c.m, c.d) + .5, E = moonElong(cT), jz = (((Math.floor(cT + .5) + 49) % 60) + 60) % 60 === 0;
+    b.innerHTML = `${moonMini(E)}${term ? '<i class="tk" aria-hidden="true"></i>' : ''}${jz ? '<i class="jz" aria-hidden="true"></i>' : ''}<span class="n">${c.d}</span><span class="s">${sub}</span>`;
+    if (jz) b.setAttribute('aria-label', b.getAttribute('aria-label') + '，甲子日');
+    b.addEventListener('click', () => { setPreview(null); selectDate(c.y, c.m, c.d); });
+    b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') setPreview(cT); });
+    grid.appendChild(b);
+  }
+  markSelected();
+}
+function markSelected() {
+  const key = `${sel.y}-${sel.m}-${sel.d}`;
+  document.querySelectorAll('.cell').forEach(c => { const on = c.dataset.ymd === key; c.classList.toggle('sel', on); c.setAttribute('aria-selected', on); c.tabIndex = on ? 0 : -1; });
+}
+$('grid').addEventListener('pointerleave', () => setPreview(null));
+$('grid').addEventListener('keydown', e => {
+  const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const n = ymdOf(targetT(sel) + step); selectDate(n.y, n.m, n.d);
+  const c = document.querySelector('.cell.sel'); if (c) c.focus();
+});
+
+/* ════════════════════════════════════════════════════════════
+   十一、說明銘牌
+   ════════════════════════════════════════════════════════════ */
+const plaque = $('plaque');
+function openPlaque(title, sub, rows, text, action) {
+  plaque.innerHTML = '';
+  const close = document.createElement('button'); close.className = 'close'; close.textContent = '✕'; close.setAttribute('aria-label', '關閉說明'); close.onclick = closePlaque;
+  const h = document.createElement('h3'); h.textContent = title;
+  const p = document.createElement('p'); p.className = 'sub'; p.textContent = sub;
+  plaque.append(close, h, p);
+  if (rows && rows.length) { const dl = document.createElement('dl'); rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); }); plaque.appendChild(dl); }
+  if (text) { const t = document.createElement('p'); t.className = 'text'; t.textContent = text; plaque.appendChild(t); }
+  if (action) { const a = document.createElement('button'); a.className = 'btn small'; a.textContent = action.label; a.onclick = action.fn; plaque.appendChild(a); }
+  plaque.hidden = false;
+}
+function closePlaque() { plaque.hidden = true; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlaque(); });
+function showTerm(i) {
+  const t = termOf(sel.y, i);
+  openPlaque(TERM[i], `${i % 2 ? '節' : '中氣'}，太陽黃經 ${i * 15}°`, [[`${sel.y} 年交節`, fmtTerm(t)]], TERM_INFO[i],
+    { label: '跳到這一天', fn: () => { selectDate(t.y, t.m, t.d); closePlaque(); } });
+}
+function showBranch(b) {
+  const ly = lichunYear(targetT(sel)), ys = (((ly - 4) % 10) + 10) % 10, off = (b - 2 + 12) % 12;
+  const gz = GAN[(ys * 2 + 2 + off) % 10] + ZHI[b], jieIdx = norm(315 + 30 * off) / 15;
+  const jie = termOf(off === 11 ? ly + 1 : ly, jieIdx), nextJie = termOf(off >= 10 ? ly + 1 : ly, (jieIdx + 2) % 24);
+  openPlaque(`${gz}月`, `${ZHI[b]}月（月建），${ly} 年立春起算的節氣年`,
+    [['起', `${jie.y}年${fmtTerm(jie)}（${TERM[jieIdx]}）`], ['止', `${nextJie.y}年${fmtTerm(nextJie)}（${TERM[(jieIdx + 2) % 24]}）`], ['中氣', TERM[(jieIdx + 1) % 24]]],
+    '月柱以十二個「節」為界，不以農曆初一或公曆月份切換。', { label: '跳到月初', fn: () => { selectDate(jie.y, jie.m, jie.d); closePlaque(); } });
+}
+function showBody(key) {
+  const T = targetT(sel), solar = Solar.fromYmd(sel.y, sel.m, sel.d), lunar = solar.getLunar();
+  const lam = sunLon(T), { cur, next } = termsAround(sel), dateLabel = `${sel.m}月${sel.d}日`;
+  if (key === 'earth') openPlaque('地球', `${dateLabel}，指示太陽黃經與二十四節氣`,
+      [['太陽黃經', `${lam.toFixed(1)}°`], ['當前節氣', `${TERM[cur.idx]}（${fmtTerm(cur)}）`], ['下一個節氣', `${TERM[next.idx]}（${fmtTerm(next)}）`]],
+      '地球繞太陽一圈為一年。它下方的黃銅指針指向盤面最外圈的當前節氣。');
+  else if (key === 'moon') {
+    const E = moonElong(T), lp = lunarParts(lunar);
+    openPlaque('月球', `${dateLabel}，繞地球一周為一個朔望月`,
+      [['月相', moonPhaseName(E)], ['照明', `約 ${Math.round((1 - Math.cos(E * D2R)) / 2 * 100)}%`], ['日月黃經差', `${E.toFixed(1)}°`], ['農曆', `${lp.name}${lp.day}`]],
+      '月球、地球、太陽排成一直線且月球在中間時是朔，月球在地球外側時是望。');
+  } else if (key === 'year') {
+    const ly = lichunYear(T), lc = termOf(ly, 21);
+    openPlaque('歲星', `${dateLabel}，曆法指示星，十二年繞行一周`,
+      [['年柱', lunar.getYearInGanZhiByLiChun()], ['生肖', SX[lunar.getYearZhiIndexByLiChun()]], ['本年立春', `${lc.y}年${fmtTerm(lc)}`], ['農曆年', `${lunar.getYearInGanZhi()}年（以正月初一為界）`]],
+      '古代以木星（歲星）約十二年一周天來紀年。此處依年支與節氣年進度定位，不是木星的真實位置。');
+  } else if (key === 'day') {
+    const gz = lunar.getDayInGanZhiExact(), idx = (GAN.indexOf(gz[0]) * 6 - ZHI.indexOf(gz[1]) * 5 + 60) % 60, nxt = ymdOf(T + ((60 - idx) % 60 || 60));
+    openPlaque('甲子星', `${dateLabel}，曆法指示星，六十日繞行一周`,
+      [['日柱', gz], ['六十甲子', `第 ${idx + 1} 位`], ['下一個甲子日', `${nxt.y}年${nxt.m}月${nxt.d}日`]],
+      '干支紀日自古連續不斷，每六十日循環一次，與月份和節氣無關。');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   十二、控制
+   ════════════════════════════════════════════════════════════ */
+$('playBtn').onclick = () => setPlaying(!playing);
+$('speedSel').onchange = e => { speed = +e.target.value; };
+$('winBtn').onclick = () => focusWindows();
+$('viewBtn').onclick = () => { if (renderer) { userZoomed = false; resetView(); } };
+$('prevM').onclick = () => shiftMonth(-1);
+$('nextM').onclick = () => shiftMonth(1);
+$('prevY').onclick = () => shiftMonth(-12);
+$('nextY').onclick = () => shiftMonth(12);
+$('todayBtn').onclick = () => selectDate(today.y, today.m, today.d);
+$('dateInput').addEventListener('change', e => { const v = e.target.value.split('-').map(Number); if (v.length === 3 && v.every(n => n > 0)) selectDate(v[0], v[1], v[2]); });
+window.addEventListener('resize', resize);
+
+/* ════════════════════════════════════════════════════════════
+   十三、啟動
+   ════════════════════════════════════════════════════════════ */
+function start() {
+  if (renderer) {
+    try { buildScene(); bindPointer(); $('loading').remove(); }
+    catch (e) { console.error(e); renderer = null; $('loading').innerHTML = '<p class="err">3D 天文儀建構失敗，右側的日曆功能仍可正常使用。</p>'; }
+  }
+  sizeDust();
+  bindPanelLinks();
+  let s = { ...today };
+  const hm = location.hash.match(/^#(\d{4})-(\d{2})-(\d{2})$/);
+  if (hm) s = { y: +hm[1], m: +hm[2], d: +hm[3] };
+  s.y = clamp(s.y, YEAR_MIN, YEAR_MAX);
+  Torr = targetT(s) - (reduced ? 0 : 150);          // 開場：從 150 天前運轉到所選日期
+  selectDate(s.y, s.m, s.d, { dur: 3200 });
+  requestAnimationFrame(t => { lastFrame = t; frame(t); });
+  // 網頁字型載入後重繪盤面文字
+  if (renderer && document.fonts) document.fonts.ready.then(() => {
+    paintInto(tex.month, monthPainter(false)); paintInto(tex.monthMetal, monthPainter(true));
+    const ly = refs.dialLY; refs.dialLY = null; repaintDial(ly);
+  });
+}
+start();
+})();
+</script>
+</body>
+</html>

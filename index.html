@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>觀星渾天儀</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
@@ -16,8 +13,8 @@
   --night:#07122a; --gold:#ead08c; --brass:#c79b4b; --ivory:#f2e7cb; --mist:#a9b4c9; --line:rgba(234,208,140,.28);
   --mercury:#bdb6ab; --venus:#f0dca0; --earth:#6b95e0; --mars:#e0704a; --jupiter:#dcb68c; --saturn:#e8d39a; --moon:#d9dee6; --sun:#ffc95a;
   --g1:#7d6a5a; --g2:#6f8fb8; --g3:#8fc0e8; --g4:#ffd98a;
-  --serif:"Noto Serif TC","Songti TC","PMingLiU","Noto Serif CJK TC",serif;
-  --numeral:"Cormorant Garamond","Noto Serif TC",Georgia,serif;
+  --serif:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --numeral:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",Roboto,"Helvetica Neue",Arial,sans-serif;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --night:#07122a; --ivory:#f2e7cb; } }
@@ -131,6 +128,43 @@ button,input,select{font:inherit;color:inherit}
 .foot p{margin:0 0 6px;max-width:90ch}
 .foot a{color:var(--gold)}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+
+/* ════════ 響應式：平板與手機 ════════ */
+body{font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+@media (max-width:700px){
+  .masthead{padding-top:14px;gap:2px 12px}
+  .masthead h1{letter-spacing:.12em}
+  .masthead p{font-size:13px}
+  .layout{padding-left:10px;padding-right:10px;gap:16px}
+  .hint{display:none}
+  .stage-controls{gap:8px}
+  .stage-controls .btn,.stage-controls select{font-size:14px;padding:7px 12px}
+  /* 說明銘牌在手機上改為貼齊畫面底部的面板，內容過長時可捲動 */
+  .plaque{position:fixed;left:8px;right:8px;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:auto;max-height:60vh;overflow:auto;z-index:50}
+  .cell{min-height:48px}
+  .cell .n{font-size:16px}
+  .cell .s{font-size:10px}
+  .tools{gap:8px}
+}
+@media (max-width:380px){
+  .stage-controls .btn,.stage-controls select{font-size:13px;padding:6px 10px}
+  .cell .s{font-size:9px}
+  .nav-btn{width:32px;height:32px}
+}
+
+@media (max-width:540px){
+  /* 行星表格改為卡片式排列 */
+  .ptable thead{display:none}
+  .ptable,.ptable tbody{display:block;width:100%}
+  .ptable tr{display:grid;grid-template-columns:auto auto 1fr;gap:2px 12px;align-items:baseline;padding:9px 2px;border-top:1px solid rgba(234,208,140,.12)}
+  .ptable td{border:0;padding:0}
+  .ptable td:nth-child(4){grid-column:1/-1;margin-top:2px}
+  .events li button{grid-template-columns:1fr;gap:0}
+  .rows div{grid-template-columns:5.4em 1fr}
+  .slider-row{font-size:12px;gap:6px}
+  .slider-row b{font-size:17px}
+  .card{padding:16px 14px}
+}
 </style>
 </head>
 <body>
@@ -183,7 +217,7 @@ button,input,select{font:inherit;color:inherit}
     <section class="card">
       <h2>夜空圖 <span class="aside">頭頂為圓心，邊緣為地平線</span></h2>
       <div class="sky-wrap">
-        <svg id="skyChart" viewBox="-170 -170 340 340" role="img" aria-label="夜空圖"></svg>
+        <svg id="skyChart" viewBox="-170 -170 340 362" role="img" aria-label="夜空圖"></svg>
         <div class="slider-row"><span>17:00</span><input type="range" id="timeSlider" min="0" max="840" step="5" aria-label="今晚時刻"><span>07:00</span><b id="sliderTime"></b></div>
       </div>
     </section>
@@ -907,7 +941,7 @@ function drumTex(cells, arc, w, digit) {
     g.addColorStop(0, '#d9ccad'); g.addColorStop(.5, '#f1e8d2'); g.addColorStop(1, '#d9ccad');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     const size = Math.min(cp * .6, H * .8);
-    ctx.font = digit ? `700 ${size * 1.15}px "Cormorant Garamond", Georgia, serif` : `900 ${size}px "Noto Serif TC", serif`;
+    ctx.font = digit ? `700 ${size * 1.15}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif` : `900 ${size}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     cells.forEach((t, i) => {
       ctx.fillStyle = 'rgba(70,40,15,.3)'; ctx.fillRect(i * cp, 0, 2, H);
@@ -953,7 +987,7 @@ function makePlaque(parent, w, h, holes, labels) {
   const t = canvasTex(W, H, ctx => {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     labels.forEach(l => {
-      ctx.font = `900 ${Math.round(l.size * W / w)}px "Noto Serif TC", serif`;
+      ctx.font = `900 ${Math.round(l.size * W / w)}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
       const x = (l.x / w + .5) * W, y = (.5 - l.y / h) * H;
       ctx.fillStyle = 'rgba(255,225,170,.35)'; ctx.fillText(l.text, x + 1.5, y + 1.5);   // 刻字的亮邊
       ctx.fillStyle = '#24130a'; ctx.fillText(l.text, x, y);
@@ -1006,7 +1040,8 @@ function buildEnvScene() {
 }
 
 function buildScene() {
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const SMALL = window.innerWidth < 700;   // 手機：降低解析度與陰影品質，維持流暢
+  renderer.setPixelRatio(Math.min(SMALL ? 1.5 : 2, window.devicePixelRatio || 1));
   renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .98;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0, 0);
   glBox.appendChild(renderer.domElement);
@@ -1014,9 +1049,10 @@ function buildScene() {
   scene.environment = new THREE.PMREMGenerator(renderer).fromScene(buildEnvScene(), .03).texture;
   camera = new THREE.PerspectiveCamera(30, 1, .1, 100);
   controls = new THREE.OrbitControls(camera, renderer.domElement);
+  renderer.domElement.style.touchAction = 'pan-y';   // 手機上下滑動可捲動頁面，左右滑動旋轉視角
   Object.assign(controls, { enableDamping: true, dampingFactor: .08, enablePan: false, rotateSpeed: .55, minPolarAngle: deg(10), maxPolarAngle: deg(80) });
   controls.target.set(0, .8, 0);
-  const key = new THREE.DirectionalLight(0xfff4e2, 1.1); key.position.set(-5, 9, 6); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  const key = new THREE.DirectionalLight(0xfff4e2, 1.1); key.position.set(-5, 9, 6); key.castShadow = true; key.shadow.mapSize.set(SMALL ? 1024 : 2048, SMALL ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 34 }); key.shadow.bias = -.0004; key.shadow.normalBias = .02; scene.add(key);
   const rim = new THREE.DirectionalLight(0x8fb0ff, .45); rim.position.set(6, 3, -7); scene.add(rim);
   scene.add(new THREE.HemisphereLight(0x9fb6e8, 0x2a1a08, .3));
@@ -1057,15 +1093,15 @@ function zodiacPainter(metal) {
     ZODIAC.forEach(z => {
       const [x0, y0] = P(3.66, z[2]), [x1, y1] = P(4.3, z[2]); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
       const span = norm(z[3] - z[2]), mid = z[2] + span / 2, [x, y] = P(4.03, mid), [x2, y2] = P(3.8, mid);
-      textRot(ctx, x, y, mid, () => { ctx.font = `700 ${span < 10 ? 34 : 46}px "Noto Serif TC", serif`; ctx.fillText(z[0], 0, 0); });
-      if (span > 10) textRot(ctx, x2, y2, mid, () => { ctx.font = '600 26px "Cormorant Garamond", serif'; ctx.fillText(z[1], 0, 0); });
+      textRot(ctx, x, y, mid, () => { ctx.font = `700 ${span < 10 ? 34 : 46}px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`; ctx.fillText(z[0], 0, 0); });
+      if (span > 10) textRot(ctx, x2, y2, mid, () => { ctx.font = '600 26px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(z[1], 0, 0); });
     });
     for (let l = 0; l < 360; l += 1) {          // 黃經刻度
       const major = l % 10 === 0, mid5 = l % 5 === 0, [x0, y0] = P(major ? 3.42 : mid5 ? 3.5 : 3.55, l), [x1, y1] = P(3.62, l);
       ctx.lineWidth = major ? 3 : 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      if (major && l % 30 === 0) { const [x, y] = P(3.32, l); textRot(ctx, x, y, l, () => { ctx.font = '600 24px "Cormorant Garamond", serif'; ctx.fillText(l + '°', 0, 0); }); }
+      if (major && l % 30 === 0) { const [x, y] = P(3.32, l); textRot(ctx, x, y, l, () => { ctx.font = '600 24px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(l + '°', 0, 0); }); }
     }
-    for (let i = 0; i < 24; i++) { const [x, y] = P(3.19, i * 15); textRot(ctx, x, y, i * 15, () => { ctx.font = '600 22px "Noto Serif TC", serif'; ctx.fillText(TERM[i], 0, 0); }); }
+    for (let i = 0; i < 24; i++) { const [x, y] = P(3.19, i * 15); textRot(ctx, x, y, i * 15, () => { ctx.font = '600 22px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(TERM[i], 0, 0); }); }
   };
 }
 function calendarPainter(year, metal) {
@@ -1081,10 +1117,10 @@ function calendarPainter(year, metal) {
       for (let d = 1; d <= n; d++) {
         const l = lonAt(m, d) - .49, [x0, y0] = P(d === 1 ? 2.52 : d % 5 === 0 ? 2.9 : 2.97, l), [x1, y1] = P(3.05, l);
         ctx.lineWidth = d === 1 ? 4 : 1.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-        if (d % 5 === 0 && d < 30) { const [x, y] = P(2.83, l + .5); textRot(ctx, x, y, l, () => { ctx.font = '600 20px "Cormorant Garamond", serif'; ctx.fillText(d, 0, 0); }); }
+        if (d % 5 === 0 && d < 30) { const [x, y] = P(2.83, l + .5); textRot(ctx, x, y, l, () => { ctx.font = '600 20px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(d, 0, 0); }); }
       }
       const mid = lonAt(m, 16), [x, y] = P(2.66, mid);
-      textRot(ctx, x, y, mid, () => { ctx.font = '700 34px "Noto Serif TC", serif'; ctx.fillText(m + '月', 0, 0); });
+      textRot(ctx, x, y, mid, () => { ctx.font = '700 34px system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif'; ctx.fillText(m + '月', 0, 0); });
     }
   };
 }
@@ -1399,6 +1435,8 @@ function bindPointer() {
     const h = pick(e), k = h ? h.type + (h.key || (h.z && h.z[0]) || '') : null;
     if (k !== hoverKey) { hoverKey = k; setHover(h); }
   });
+  // 瀏覽器接手捲動時會取消拖曳，這時要恢復視角控制
+  window.addEventListener('pointercancel', () => { if (drag) { drag = null; scrubbing = false; controls.enabled = true; el.style.cursor = ''; } });
   window.addEventListener('pointerup', e => {
     if (!drag) return; const d = drag; drag = null; controls.enabled = true; el.style.cursor = '';
     if (d.kind && d.moved) { scrubbing = false; lastPanelNight = ''; return; }
@@ -1592,7 +1630,7 @@ function drawSky(st, nd) {
     s += `<g data-link="${p}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="5" fill="${col}" stroke="#08122c"/><text x="${x + 7}" y="${y + 4}" fill="${col}" font-size="12" font-weight="700">${BODY[p].name}</text></g>`;
   });
   const below = bodies.filter(([, h]) => h.alt <= 0).map(([p]) => BODY[p].name);
-  s += `<text x="0" y="${R + 16}" fill="rgba(169,180,201,.9)" font-size="11" text-anchor="middle">${below.length ? '地平線下：' + below.join('、') : '五顆行星都在地平線上'}</text>`;
+  s += `<text x="0" y="${R + 34}" fill="rgba(169,180,201,.9)" font-size="11" text-anchor="middle">${below.length ? '地平線下：' + below.join('、') : '五顆行星都在地平線上'}</text>`;
   const svg = $('skyChart'); svg.innerHTML = s;
   svg.querySelectorAll('[data-link]').forEach(g => { g.addEventListener('mouseenter', () => setLink(g.dataset.link)); g.addEventListener('mouseleave', () => setLink(null)); g.addEventListener('click', () => { focusBody(g.dataset.link); showBody(g.dataset.link); }); });
 }
