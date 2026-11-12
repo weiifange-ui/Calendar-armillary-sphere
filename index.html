@@ -38,8 +38,9 @@ button,input,select{font:inherit;color:inherit}
 @media (max-width:700px){ .stage{aspect-ratio:1/1.02} .hint{display:none} .readout-box b{font-size:18px} }
 #dust,#gl{position:absolute;inset:0;width:100%;height:100%}
 #dust{pointer-events:none}
-#gl canvas{display:block;width:100%!important;height:100%!important;cursor:grab}
-#gl canvas.pick{cursor:pointer}
+#gl canvas{display:block;width:100%!important;height:100%!important;cursor:var(--cur-grab)}
+#gl canvas.pick{cursor:var(--cur-pt)}
+#gl canvas:active{cursor:var(--cur-grabbing)}
 .readout-box{position:absolute;right:clamp(6px,2vw,16px);top:clamp(6px,2vw,14px);text-align:right;font-size:14px;color:var(--mist);pointer-events:none}
 .readout-box b{display:block;font-family:var(--numeral);font-size:22px;font-weight:600;color:var(--ivory)}
 .readout-box.live b{color:var(--gold)}
@@ -165,6 +166,114 @@ body{font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
   .slider-row b{font-size:17px}
   .card{padding:16px 14px}
 }
+/* ════════ 生活功能 ════════ */
+.side{min-width:0;display:grid;gap:16px;align-content:start}
+.panel.sub{padding:18px clamp(14px,2vw,22px)}
+.sh{margin:0 0 12px;font-size:17px;font-weight:700;color:var(--gold);letter-spacing:.06em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sh .aside{margin-left:auto;font-size:13px;font-weight:400;color:var(--mist);letter-spacing:0}
+.items{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.items .empty{color:var(--mist);font-size:14px;padding:4px 0}
+.it{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(234,208,140,.14);font-size:15px}
+.it .ic{font-style:normal;font-size:12px;min-width:3em;text-align:center;padding:2px 6px;border-radius:999px;background:rgba(107,149,224,.22);color:#cfe0ff}
+.it.hol .ic{background:rgba(232,106,106,.25);color:#ffc9c0}
+.it.an .ic{background:rgba(240,130,170,.22);color:#ffc0d8}
+.it small{display:block;font-size:12px;color:var(--mist);margin-top:2px}
+.del{background:none;border:1px solid rgba(240,180,138,.45);color:#f6c3a2;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.del:hover{background:rgba(240,180,138,.12)}
+.addrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.addrow input,.addrow select,.wx-search input,.wx-search select{background:#13233f;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ivory);font-size:14px;min-width:0;color-scheme:dark}
+.addrow input[type=text],.addrow input:not([type]){flex:1 1 10em}
+.addrow input[type=time]{flex:0 0 7.5em}
+.note{margin:6px 0 0;font-size:12px;color:var(--mist);line-height:1.6}
+.up-list button{width:100%;display:grid;grid-template-columns:4.2em 1fr auto;gap:8px;align-items:center;text-align:left;background:none;border:0;border-radius:6px;padding:6px 6px;cursor:pointer;font-size:14px}
+.up-list button:hover{background:rgba(255,255,255,.05)}
+.up-list .w{color:var(--gold);font-weight:700}
+.up-list .d{color:var(--mist);font-size:13px}
+.up-list .hol .t{color:#ffc9c0} .up-list .an .t{color:#ffc0d8}
+.hol-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(14em,1fr));gap:2px 10px}
+.hol-list button{width:100%;display:flex;gap:8px;background:none;border:0;padding:4px 2px;text-align:left;cursor:pointer;font-size:14px}
+.hol-list button:hover{color:var(--gold)}
+.hol-list .d{color:#ffb3a6;min-width:6.4em}
+.hol-list .mk span:last-child{color:var(--mist)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;background:#13233f;border:1px solid var(--line);border-radius:8px;padding:7px;cursor:pointer;font-size:14px}
+.tabs button[aria-selected="true"]{background:linear-gradient(#ebcd85,#a9782f);color:#211404;border-color:#f6e1a8;font-weight:700}
+.learn{min-height:9em}
+.learn .word{margin:4px 0;font-size:26px;font-weight:700;color:var(--gold)}
+.learn .pos{font-size:14px;color:var(--mist);font-weight:400}
+.learn .ipa{font-size:15px;color:#cfe0ff;font-weight:400}
+.learn .zh{margin:4px 0 10px;font-size:16px}
+.learn .ex{margin:0;font-size:15px;font-style:italic;color:#e8dfc6}
+.learn .exz{margin:2px 0 0;font-size:14px;color:var(--mist)}
+.learn .ctitle{margin:2px 0 8px;font-size:16px;font-weight:700}
+.learn .lang{display:inline-block;font-size:12px;font-weight:400;padding:1px 8px;border-radius:999px;background:rgba(107,149,224,.25);color:#cfe0ff;margin-right:8px}
+.learn pre{margin:0 0 8px;padding:10px 12px;background:#06112a;border:1px solid rgba(234,208,140,.2);border-radius:8px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;color:#e6edf8;white-space:pre}
+.learn-nav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:8px}
+.learn-nav #lDone[aria-pressed="true"]{background:linear-gradient(#9fd6a0,#4f8f52);color:#08200a;border-color:#c8f0c9}
+.wx-search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.wx-search input{flex:1 1 9em}
+.wx-results{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:2px}
+.wx-results button{width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(234,208,140,.14);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
+.wx-results small{margin-left:8px;color:var(--mist);font-size:12px}
+.wx-results .empty{color:var(--mist);font-size:13px}
+.wx-msg{margin:6px 0;font-size:14px;color:var(--mist);line-height:1.7}
+.wx-now{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+.wx-now .big{font-size:44px;line-height:1}
+.wx-now .t{margin:0;font-size:28px;font-weight:700}
+.wx-now .t small{font-size:16px;font-weight:400;margin-left:6px}
+.wx-now .muted{margin:2px 0 0}
+.wx-days{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.wx-days li{display:grid;grid-template-columns:7em 1.6em 1fr auto auto;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;font-size:14px}
+.wx-days li.sel{background:rgba(234,208,140,.14);outline:1px solid rgba(234,208,140,.4)}
+.wx-days .tp{font-variant-numeric:tabular-nums}
+.wx-days .pp{color:#9fc3ff;font-size:13px}
+/* 日曆格子：國定假日紅字、行程藍點、紀念日愛心 */
+.cell.hol .n{color:#ff8f80}
+.cell.hol .s{color:#ffb3a6}
+.cell .pm{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;gap:3px;height:8px;align-items:center}
+.cell .evd{width:5px;height:5px;border-radius:50%;background:#7fb0ff}
+.cell .and{font-style:normal;font-size:8px;line-height:1;color:#ff9cc4}
+@media (max-width:540px){
+  .wx-days li{grid-template-columns:5.6em 1.6em 1fr auto;font-size:13px}
+  .wx-days .tx{display:none}
+  .up-list button{grid-template-columns:3.8em 1fr auto}
+  .learn .word{font-size:22px}
+}
+
+/* ════════ 星星游標 ════════ */
+:root{
+  --cur:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14.0' cy='14.0' r='12.9' fill='%23ffd98a' opacity='0.35'/%3E%3Cpolygon points='14.0,3.9 16.7,10.3 23.6,10.9 18.3,15.4 19.9,22.2 14.0,18.5 8.1,22.2 9.7,15.4 4.4,10.9 11.3,10.3' fill='%23ffd98a' stroke='%237a4a12' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='14.0' cy='14.0' r='1.2' fill='%23fff'/%3E%3C/svg%3E") 14 14, auto;
+  --cur-pt:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16.0' cy='16.0' r='14.7' fill='%23ffe7a0' opacity='0.35'/%3E%3Ccircle cx='16.0' cy='16.0' r='14.1' fill='none' stroke='%23fff3c4' stroke-width='1.2' stroke-dasharray='2 3'/%3E%3Cpolygon points='16.0,4.5 19.0,11.8 27.0,12.4 20.9,17.6 22.8,25.3 16.0,21.2 9.2,25.3 11.1,17.6 5.0,12.4 13.0,11.8' fill='%23fff1c2' stroke='%23a8701c' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='16.0' cy='16.0' r='1.2' fill='%23fff'/%3E%3C/svg%3E") 16 16, pointer;
+  --cur-grab:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16.0' cy='16.0' r='14.7' fill='%23ffd98a' opacity='0.35'/%3E%3Ccircle cx='16.0' cy='16.0' r='14.1' fill='none' stroke='%23fff3c4' stroke-width='1.2' stroke-dasharray='2 3'/%3E%3Cpolygon points='16.0,4.5 19.0,11.8 27.0,12.4 20.9,17.6 22.8,25.3 16.0,21.2 9.2,25.3 11.1,17.6 5.0,12.4 13.0,11.8' fill='%23ffd98a' stroke='%237a4a12' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='16.0' cy='16.0' r='1.2' fill='%23fff'/%3E%3C/svg%3E") 16 16, grab;
+  --cur-grabbing:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14.0' cy='14.0' r='12.9' fill='%23ffffff' opacity='0.35'/%3E%3Cpolygon points='14.0,5.6 16.2,10.9 22.0,11.4 17.6,15.2 18.9,20.8 14.0,17.8 9.1,20.8 10.4,15.2 6.0,11.4 11.8,10.9' fill='%23ffe9b0' stroke='%237a4a12' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='14.0' cy='14.0' r='1.2' fill='%23fff'/%3E%3C/svg%3E") 14 14, grabbing;
+}
+html,body{cursor:var(--cur)}
+a,button,select,label,summary,[role="button"],[role="tab"],[data-link],.cell,input[type="range"],input[type="date"]{cursor:var(--cur-pt)}
+input[type="text"],input:not([type]),input[type="time"],input[type="number"],textarea{cursor:text}
+/* ════════ 星空背景遍及全頁：天文儀區域不再另外疊一層星點 ════════ */
+#dust{display:none}
+/* ════════ 右側表格、格子、輸入框與按鈕：底色 50% 透明 ════════ */
+.panel .cell{background:rgba(14,31,61,.5)}
+.grid .cell{min-height:66px;padding-bottom:12px}
+@media (max-width:700px){ .grid .cell{min-height:60px} .cell .hn{font-size:9px} }
+.panel .nav-btn,.panel .sel-ui,.panel .locrow input,.panel .tools input[type=date],.panel .tabs button:not([aria-selected="true"]),
+.panel .addrow input,.panel .addrow select,.panel .wx-search input,.panel .wx-search select{background:rgba(19,35,63,.5)}
+.panel .btn:not([aria-pressed="true"]){background:linear-gradient(rgba(34,55,93,.5),rgba(19,35,63,.5))}
+.panel .learn pre{background:rgba(6,17,42,.5)}
+.panel select option{background:#13233f}
+.cell .hn{font-size:10px;line-height:1.2;color:#ff9a8a;white-space:nowrap;font-weight:700}
+.cell.hol .n{color:#ff8f80}
+.cell .pm{bottom:7px}
+
+/* ════════ 補班與連假 ════════ */
+.cell.work .hn{color:#8fc0ff}
+.cell.work .n{color:var(--ivory)}
+.cell.lj::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,#ff8f80,#ffbf7a)}
+.it.wk .ic{background:rgba(143,192,255,.22);color:#cfe0ff}
+.it.lj .ic{background:linear-gradient(90deg,rgba(255,143,128,.35),rgba(255,191,122,.35));color:#ffe0c8}
+.up-list .lj .t{color:#ffd0a8;font-weight:700} .up-list .wk .t{color:#bcd6ff}
+.hol-list .wk span:last-child{color:#bcd6ff}
+.legend .ljb{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle;background:linear-gradient(90deg,#ff8f80,#ffbf7a)}
 </style>
 </head>
 <body>
@@ -248,13 +357,60 @@ body{font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
       </div>
       <p class="msg" id="msg"></p>
     </section>
+  <section class="card" aria-labelledby="dayTitle">
+    <h2 class="sh"><span id="dayTitle">這一天</span></h2>
+    <ul class="items" id="dayItems"></ul>
+    <form class="addrow" id="evForm">
+      <input id="evTime" type="time" aria-label="時間（可不填）">
+      <input id="evTitle" required maxlength="60" placeholder="新增行程，例如：看牙醫" aria-label="行程內容">
+      <button class="btn small" type="submit">新增行程</button>
+    </form>
+    <form class="addrow" id="anForm">
+      <input id="anName" required maxlength="40" placeholder="紀念日名稱，例如：結婚紀念日" aria-label="紀念日名稱">
+      <select id="anType" aria-label="紀念日依據"><option value="solar">每年國曆同一天</option><option value="lunar">每年農曆同一天</option></select>
+      <button class="btn small" type="submit">設為紀念日</button>
+    </form>
+    <p class="note" id="storeNote"></p>
+  </section>
+  <section class="card">
+    <h2 class="sh">即將到來 <span class="aside">從今天起 60 天</span></h2>
+    <ul class="items up-list" id="upList"></ul>
+  </section>
+  <section class="card">
+    <h2 class="sh">鄉鎮天氣 <span class="aside" id="wxPlace"></span></h2>
+    <div class="wx-search">
+      <input id="wxQ" placeholder="輸入鄉鎮區，例如：礁溪、玉里" aria-label="搜尋鄉鎮區">
+      <button class="btn small" id="wxGo" type="button">搜尋</button>
+      <select id="wxCounty" aria-label="選擇縣市"></select>
+      <button class="btn small" id="wxHere" type="button">目前位置</button>
+    </div>
+    <ul class="wx-results" id="wxResults"></ul>
+    <div id="wxBox"></div>
+    <p class="note">天氣資料來自 Open-Meteo 開放氣象資料。</p>
+  </section>
+  <section class="card">
+    <h2 class="sh">每日學習</h2>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="en">英文單字</button>
+      <button role="tab" aria-selected="false" data-tab="code">程式碼</button>
+    </div>
+    <div id="learnBox" class="learn" aria-live="polite"></div>
+    <div class="learn-nav">
+      <button class="btn small" id="lPrev" type="button">‹ 前一則</button>
+      <button class="btn small" id="lDone" type="button" aria-pressed="false">標記為已學會</button>
+      <button class="btn small" id="lNext" type="button">下一則 ›</button>
+    </div>
+    <p class="note" id="learnStat"></p>
+  </section>
   </aside>
 </main>
 <footer class="foot">
+  <p>行程、紀念日與學習進度儲存在這台裝置的瀏覽器中；在 claude.ai 開啟並登入時，會同步到你帳號的私人空間，只有你自己看得到。天氣資料來自 Open-Meteo，國定假日、補假、補班與連假：2017 至 2027 年採用行政院人事行政總處公布的「政府行政機關辦公日曆表」（政府資料開放平臺），其他年份尚無官方公告，依現行法規推算並標示「推算」。</p>
   <p>行星位置依 JPL 克卜勒軌道根數計算，月球依 Meeus 天文演算法，與專業星曆比對誤差多在數角分以內，升落時刻誤差約 1 分鐘。時間一律為台灣時間（UTC+8），未計入地形與海拔。天文儀上的軌道大小經過壓縮，方向與傾角則為真實數值。</p>
   <p>「無月暗夜」指太陽低於地平線 18° 且月亮未升起（或月相極細）的時段。日月食為近似計算，實際食分與時刻請以台北市立天文館公告為準。天氣與雲量請另查氣象預報；完整星圖可使用 <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a>。</p>
 </footer>
 
+<script type="application/json" id="learnData">{"en": [{"w": "serendipity", "p": "n.", "ipa": "/ˌser.ənˈdɪp.ə.ti/", "zh": "意外發現美好事物的運氣", "ex": "Finding that old café was pure serendipity.", "exz": "發現那間老咖啡館，純屬意外的驚喜。"}, {"w": "resilient", "p": "adj.", "ipa": "/rɪˈzɪl.i.ənt/", "zh": "有韌性的、能迅速恢復的", "ex": "Children are often more resilient than we think.", "exz": "孩子往往比我們想的更有韌性。"}, {"w": "procrastinate", "p": "v.", "ipa": "/prəˈkræs.tə.neɪt/", "zh": "拖延", "ex": "Stop procrastinating and start the report today.", "exz": "別再拖延了，今天就開始寫報告。"}, {"w": "meticulous", "p": "adj.", "ipa": "/məˈtɪk.jə.ləs/", "zh": "一絲不苟的", "ex": "She keeps meticulous notes of every experiment.", "exz": "她把每次實驗都記錄得一絲不苟。"}, {"w": "constellation", "p": "n.", "ipa": "/ˌkɑːn.stəˈleɪ.ʃən/", "zh": "星座", "ex": "Orion is the easiest constellation to find in winter.", "exz": "獵戶座是冬天最容易找到的星座。"}, {"w": "eclipse", "p": "n.", "ipa": "/ɪˈklɪps/", "zh": "日食、月食", "ex": "We watched the lunar eclipse from the rooftop.", "exz": "我們在頂樓觀賞月食。"}, {"w": "deadline", "p": "n.", "ipa": "/ˈded.laɪn/", "zh": "截止期限", "ex": "The deadline for applications is next Friday.", "exz": "申請截止日是下週五。"}, {"w": "commute", "p": "n.", "ipa": "/kəˈmjuːt/", "zh": "通勤", "ex": "My commute takes about forty minutes.", "exz": "我通勤大約要四十分鐘。"}, {"w": "anniversary", "p": "n.", "ipa": "/ˌæn.əˈvɝː.sɚ.i/", "zh": "週年紀念日", "ex": "They celebrated their tenth wedding anniversary in Tainan.", "exz": "他們在台南慶祝結婚十週年。"}, {"w": "itinerary", "p": "n.", "ipa": "/aɪˈtɪn.ə.rer.i/", "zh": "行程表", "ex": "Please send me the itinerary before the trip.", "exz": "出發前請把行程表寄給我。"}, {"w": "forecast", "p": "n.", "ipa": "/ˈfɔːr.kæst/", "zh": "預報", "ex": "The forecast says it will rain this afternoon.", "exz": "氣象預報說今天下午會下雨。"}, {"w": "humid", "p": "adj.", "ipa": "/ˈhjuː.mɪd/", "zh": "潮濕的", "ex": "Taipei summers are hot and humid.", "exz": "台北的夏天又熱又潮濕。"}, {"w": "typhoon", "p": "n.", "ipa": "/taɪˈfuːn/", "zh": "颱風", "ex": "Schools were closed because of the typhoon.", "exz": "因為颱風，學校停課了。"}, {"w": "postpone", "p": "v.", "ipa": "/poʊstˈpoʊn/", "zh": "延期", "ex": "The meeting was postponed until Monday.", "exz": "會議延到星期一。"}, {"w": "reschedule", "p": "v.", "ipa": "/ˌriːˈskedʒ.uːl/", "zh": "重新安排時間", "ex": "Can we reschedule our call to 3 p.m.?", "exz": "我們可以把通話改到下午三點嗎？"}, {"w": "reminder", "p": "n.", "ipa": "/rɪˈmaɪn.dɚ/", "zh": "提醒", "ex": "I set a reminder for my dentist appointment.", "exz": "我替牙醫預約設了提醒。"}, {"w": "appointment", "p": "n.", "ipa": "/əˈpɔɪnt.mənt/", "zh": "預約、約診", "ex": "I have an appointment with the doctor at ten.", "exz": "我十點跟醫生有約。"}, {"w": "milestone", "p": "n.", "ipa": "/ˈmaɪl.stoʊn/", "zh": "里程碑", "ex": "Launching the website was a big milestone for us.", "exz": "網站上線是我們的一大里程碑。"}, {"w": "curious", "p": "adj.", "ipa": "/ˈkjʊr.i.əs/", "zh": "好奇的", "ex": "Stay curious and keep asking questions.", "exz": "保持好奇，持續發問。"}, {"w": "consistent", "p": "adj.", "ipa": "/kənˈsɪs.tənt/", "zh": "持續的、一致的", "ex": "Consistent practice matters more than talent.", "exz": "持續練習比天分更重要。"}, {"w": "debug", "p": "v.", "ipa": "/diːˈbʌɡ/", "zh": "除錯", "ex": "It took me an hour to debug that function.", "exz": "我花了一小時替那個函式除錯。"}, {"w": "deploy", "p": "v.", "ipa": "/dɪˈplɔɪ/", "zh": "部署", "ex": "We deploy the website to GitHub Pages.", "exz": "我們把網站部署到 GitHub Pages。"}, {"w": "repository", "p": "n.", "ipa": "/rɪˈpɑː.zə.tɔːr.i/", "zh": "儲存庫", "ex": "Clone the repository and run the project locally.", "exz": "複製儲存庫，並在本機執行專案。"}, {"w": "variable", "p": "n.", "ipa": "/ˈver.i.ə.bəl/", "zh": "變數", "ex": "Store the result in a variable.", "exz": "把結果存進一個變數。"}, {"w": "efficient", "p": "adj.", "ipa": "/ɪˈfɪʃ.ənt/", "zh": "有效率的", "ex": "This method is more efficient than the old one.", "exz": "這個方法比舊的更有效率。"}, {"w": "accomplish", "p": "v.", "ipa": "/əˈkɑːm.plɪʃ/", "zh": "完成、達成", "ex": "What do you want to accomplish this year?", "exz": "你今年想完成什麼？"}, {"w": "priority", "p": "n.", "ipa": "/praɪˈɔːr.ə.t̬i/", "zh": "優先事項", "ex": "Health should be your top priority.", "exz": "健康應該是你的第一優先。"}, {"w": "gratitude", "p": "n.", "ipa": "/ˈɡræt̬.ə.tuːd/", "zh": "感激", "ex": "She expressed her gratitude to the volunteers.", "exz": "她向志工們表達感謝。"}, {"w": "nostalgic", "p": "adj.", "ipa": "/nɑːˈstæl.dʒɪk/", "zh": "懷舊的", "ex": "Old songs always make me feel nostalgic.", "exz": "老歌總是讓我感到懷舊。"}, {"w": "spontaneous", "p": "adj.", "ipa": "/spɑːnˈteɪ.ni.əs/", "zh": "臨時起意的、自發的", "ex": "We took a spontaneous trip to the beach.", "exz": "我們臨時起意去了海邊。"}, {"w": "horizon", "p": "n.", "ipa": "/həˈraɪ.zən/", "zh": "地平線；眼界", "ex": "The sun disappeared below the horizon.", "exz": "太陽沉到了地平線下。"}, {"w": "orbit", "p": "v.", "ipa": "/ˈɔːr.bɪt/", "zh": "繞行（軌道）", "ex": "The Moon orbits the Earth about once a month.", "exz": "月亮大約每個月繞地球一圈。"}, {"w": "telescope", "p": "n.", "ipa": "/ˈtel.ə.skoʊp/", "zh": "望遠鏡", "ex": "You can see Saturn's rings with a small telescope.", "exz": "用小望遠鏡就能看到土星環。"}, {"w": "equinox", "p": "n.", "ipa": "/ˈek.wə.nɑːks/", "zh": "春分、秋分", "ex": "Day and night are nearly equal at the equinox.", "exz": "春分和秋分時，晝夜幾乎等長。"}, {"w": "solstice", "p": "n.", "ipa": "/ˈsɑːl.stɪs/", "zh": "夏至、冬至", "ex": "The winter solstice is the shortest day of the year.", "exz": "冬至是一年中白天最短的一天。"}, {"w": "ambitious", "p": "adj.", "ipa": "/æmˈbɪʃ.əs/", "zh": "有抱負的、雄心勃勃的", "ex": "It's an ambitious plan, but we can do it.", "exz": "這是個很有野心的計畫，但我們做得到。"}, {"w": "collaborate", "p": "v.", "ipa": "/kəˈlæb.ə.reɪt/", "zh": "合作", "ex": "Designers and engineers collaborate closely.", "exz": "設計師和工程師密切合作。"}, {"w": "feedback", "p": "n.", "ipa": "/ˈfiːd.bæk/", "zh": "回饋意見", "ex": "Thanks for your helpful feedback.", "exz": "謝謝你很有幫助的回饋。"}, {"w": "overwhelmed", "p": "adj.", "ipa": "/ˌoʊ.vɚˈwelmd/", "zh": "不知所措的", "ex": "I felt overwhelmed by all the emails.", "exz": "這麼多電子郵件讓我不知所措。"}, {"w": "manageable", "p": "adj.", "ipa": "/ˈmæn.ɪ.dʒə.bəl/", "zh": "可應付的", "ex": "Break the task into manageable steps.", "exz": "把任務拆成可以應付的小步驟。"}, {"w": "tradition", "p": "n.", "ipa": "/trəˈdɪʃ.ən/", "zh": "傳統", "ex": "Eating mooncakes is a Mid-Autumn tradition.", "exz": "吃月餅是中秋節的傳統。"}, {"w": "festival", "p": "n.", "ipa": "/ˈfes.tə.vəl/", "zh": "節日", "ex": "The Lantern Festival marks the end of the New Year celebrations.", "exz": "元宵節代表新年慶祝活動的結束。"}, {"w": "occasion", "p": "n.", "ipa": "/əˈkeɪ.ʒən/", "zh": "場合、特別的日子", "ex": "A birthday is a special occasion.", "exz": "生日是特別的日子。"}, {"w": "celebrate", "p": "v.", "ipa": "/ˈsel.ə.breɪt/", "zh": "慶祝", "ex": "Let's celebrate your promotion tonight!", "exz": "今晚來慶祝你升職吧！"}, {"w": "commemorate", "p": "v.", "ipa": "/kəˈmem.ə.reɪt/", "zh": "紀念", "ex": "The holiday commemorates the founding of the nation.", "exz": "這個節日是為了紀念建國。"}, {"w": "annual", "p": "adj.", "ipa": "/ˈæn.ju.əl/", "zh": "每年的", "ex": "The annual meteor shower peaks in mid-December.", "exz": "這個每年都有的流星雨在十二月中旬達到高峰。"}, {"w": "temporary", "p": "adj.", "ipa": "/ˈtem.pə.rer.i/", "zh": "暫時的", "ex": "This is only a temporary solution.", "exz": "這只是暫時的解決辦法。"}, {"w": "essential", "p": "adj.", "ipa": "/ɪˈsen.ʃəl/", "zh": "不可或缺的", "ex": "Water is essential for life.", "exz": "水是生命不可或缺的。"}, {"w": "perspective", "p": "n.", "ipa": "/pɚˈspek.tɪv/", "zh": "觀點、看法", "ex": "Travel gives you a new perspective.", "exz": "旅行能帶給你新的觀點。"}, {"w": "genuine", "p": "adj.", "ipa": "/ˈdʒen.ju.ɪn/", "zh": "真誠的、真正的", "ex": "Her smile was warm and genuine.", "exz": "她的笑容溫暖而真誠。"}, {"w": "inevitable", "p": "adj.", "ipa": "/ɪˈnev.ə.t̬ə.bəl/", "zh": "不可避免的", "ex": "Mistakes are inevitable when you learn something new.", "exz": "學新東西時，犯錯是難免的。"}, {"w": "sustainable", "p": "adj.", "ipa": "/səˈsteɪ.nə.bəl/", "zh": "可持續的、永續的", "ex": "We need more sustainable ways to travel.", "exz": "我們需要更永續的移動方式。"}, {"w": "cozy", "p": "adj.", "ipa": "/ˈkoʊ.zi/", "zh": "舒適溫暖的", "ex": "We spent a cozy evening at home.", "exz": "我們在家度過了一個溫馨的夜晚。"}, {"w": "breathtaking", "p": "adj.", "ipa": "/ˈbreθˌteɪ.kɪŋ/", "zh": "令人屏息的", "ex": "The view of the Milky Way was breathtaking.", "exz": "銀河的景色令人屏息。"}, {"w": "patience", "p": "n.", "ipa": "/ˈpeɪ.ʃəns/", "zh": "耐心", "ex": "Learning a language takes patience.", "exz": "學一種語言需要耐心。"}, {"w": "improve", "p": "v.", "ipa": "/ɪmˈpruːv/", "zh": "改善、進步", "ex": "Reading every day will improve your English.", "exz": "每天閱讀能讓你的英文進步。"}, {"w": "routine", "p": "n.", "ipa": "/ruːˈtiːn/", "zh": "日常慣例", "ex": "A morning routine helps me focus.", "exz": "固定的早晨習慣幫助我專注。"}, {"w": "accurate", "p": "adj.", "ipa": "/ˈæk.jɚ.ət/", "zh": "準確的", "ex": "The app gives accurate sunrise times.", "exz": "這個應用程式提供準確的日出時間。"}, {"w": "overcast", "p": "adj.", "ipa": "/ˈoʊ.vɚ.kæst/", "zh": "陰天的", "ex": "It's overcast today, so we can't see the stars.", "exz": "今天陰天，看不到星星。"}, {"w": "drizzle", "p": "v.", "ipa": "/ˈdrɪz.əl/", "zh": "下毛毛雨", "ex": "It's only drizzling, so we don't need an umbrella.", "exz": "只是毛毛雨，不需要撐傘。"}], "code": [{"lang": "JavaScript", "title": "用 const 與 let 宣告變數", "code": "const PI = 3.14159;   // 不會再改變的值\nlet count = 0;        // 之後會改變的值\ncount += 1;", "note": "優先使用 const，需要重新賦值時才用 let，避免使用舊式的 var。"}, {"lang": "JavaScript", "title": "範本字串", "code": "const name = '小明';\nconsole.log(`你好，${name}！`);", "note": "用反引號包起來的字串，可以直接用 ${} 放入變數或運算式。"}, {"lang": "JavaScript", "title": "陣列 map：轉換每個元素", "code": "const nums = [1, 2, 3];\nconst doubled = nums.map(n => n * 2);\n// [2, 4, 6]", "note": "map 會回傳新陣列，不會修改原本的陣列。"}, {"lang": "JavaScript", "title": "陣列 filter：篩選元素", "code": "const scores = [58, 72, 91, 45];\nconst passed = scores.filter(s => s >= 60);\n// [72, 91]", "note": "條件成立的元素才會留下。"}, {"lang": "JavaScript", "title": "解構賦值", "code": "const user = { name: 'Amy', age: 28 };\nconst { name, age } = user;\nconsole.log(name);  // Amy", "note": "一次從物件取出多個屬性，程式碼更簡潔。"}, {"lang": "JavaScript", "title": "可選鏈與預設值", "code": "const city = user.address?.city ?? '未填寫';", "note": "?. 遇到 null 或 undefined 時不會報錯；?? 只在值為 null 或 undefined 時才採用右邊的預設值。"}, {"lang": "JavaScript", "title": "async / await 讀取資料", "code": "async function load() {\n  const res = await fetch('data.json');\n  const data = await res.json();\n  console.log(data);\n}", "note": "await 會等待非同步工作完成，讓程式讀起來像由上往下執行。"}, {"lang": "JavaScript", "title": "try / catch 處理錯誤", "code": "try {\n  JSON.parse('{格式錯誤');\n} catch (err) {\n  console.error('解析失敗：', err.message);\n}", "note": "把可能出錯的程式放在 try 裡，錯誤就不會讓整個頁面停止。"}, {"lang": "JavaScript", "title": "監聽點擊事件", "code": "document.querySelector('#btn')\n  .addEventListener('click', () => {\n    alert('點到了！');\n  });", "note": "addEventListener 可以替同一個元素加上多個事件，不會互相覆蓋。"}, {"lang": "JavaScript", "title": "localStorage 儲存資料", "code": "localStorage.setItem('theme', 'dark');\nconst theme = localStorage.getItem('theme');\n// 'dark'", "note": "只能儲存字串，物件要先用 JSON.stringify 轉換，讀取時再用 JSON.parse。"}, {"lang": "JavaScript", "title": "中文日期格式", "code": "new Date().toLocaleDateString('zh-TW', {\n  year: 'numeric', month: 'long',\n  day: 'numeric', weekday: 'long'\n});", "note": "不需要自己拼接年月日，瀏覽器會依語系輸出，例如「2026年11月12日 星期四」。"}, {"lang": "JavaScript", "title": "展開運算子", "code": "const a = [1, 2], b = [3, 4];\nconst all = [...a, ...b];        // [1, 2, 3, 4]\nconst older = { ...user, age: 29 };", "note": "可以合併陣列，或複製物件並覆寫部分欄位。"}, {"lang": "JavaScript", "title": "防抖（debounce）", "code": "function debounce(fn, ms) {\n  let t;\n  return (...args) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...args), ms);\n  };\n}", "note": "使用者連續輸入時，只在停下來後執行一次，常用在搜尋框。"}, {"lang": "JavaScript", "title": "數字加上千分位", "code": "(1234567.89).toLocaleString('zh-TW');\n// '1,234,567.89'", "note": "顯示金額或大數字時，用 toLocaleString 自動加上逗號。"}, {"lang": "PHP", "title": "輸出與變數", "code": "<?php\n$name = '小明';\necho \"你好，{$name}！\";", "note": "雙引號字串會解析變數，單引號不會。"}, {"lang": "PHP", "title": "陣列與 foreach", "code": "<?php\n$planets = ['水星', '金星', '地球'];\nforeach ($planets as $i => $p) {\n    echo ($i + 1) . \". $p\\n\";\n}", "note": "$i 是索引，$p 是值；. 是 PHP 的字串連接符號。"}, {"lang": "PHP", "title": "關聯陣列", "code": "<?php\n$user = ['name' => 'Amy', 'age' => 28];\necho $user['name'];   // Amy", "note": "用文字當作鍵，類似 JavaScript 的物件。"}, {"lang": "PHP", "title": "函式與型別宣告", "code": "<?php\nfunction add(int $a, int $b): int {\n    return $a + $b;\n}\necho add(2, 3);   // 5", "note": "宣告參數和回傳值的型別，傳錯型別時會更早發現問題。"}, {"lang": "PHP", "title": "防止 XSS 攻擊", "code": "<?php\n$q = $_GET['q'] ?? '';\necho htmlspecialchars($q, ENT_QUOTES, 'UTF-8');", "note": "輸出使用者輸入的內容前，一定要先經過 htmlspecialchars 處理。"}, {"lang": "PHP", "title": "日期與時區", "code": "<?php\ndate_default_timezone_set('Asia/Taipei');\necho date('Y-m-d H:i');", "note": "先設定時區，否則伺服器可能使用世界標準時間。"}, {"lang": "PHP", "title": "用 include 拆分頁面", "code": "<?php include 'header.php'; ?>\n<main>主要內容</main>\n<?php include 'footer.php'; ?>", "note": "共用的頁首和頁尾只要寫一次，所有頁面都能引用。"}, {"lang": "PHP", "title": "輸出 JSON", "code": "<?php\nheader('Content-Type: application/json; charset=utf-8');\necho json_encode(['ok' => true, 'msg' => '你好'],\n    JSON_UNESCAPED_UNICODE);", "note": "JSON_UNESCAPED_UNICODE 讓中文直接輸出，而不是變成 \\u 編碼。"}, {"lang": "PHP", "title": "PDO 預備陳述式", "code": "<?php\n$stmt = $pdo->prepare('SELECT * FROM events WHERE day = ?');\n$stmt->execute([$day]);\n$rows = $stmt->fetchAll();", "note": "用 ? 當佔位符，資料庫會自動處理特殊字元，避免 SQL 注入。"}, {"lang": "CSS", "title": "Flexbox 置中", "code": ".box {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}", "note": "justify-content 控制主軸方向，align-items 控制交叉軸方向。"}, {"lang": "CSS", "title": "Grid 自動排列卡片", "code": ".cards {\n  display: grid;\n  grid-template-columns:\n    repeat(auto-fill, minmax(200px, 1fr));\n  gap: 16px;\n}", "note": "不用寫媒體查詢，卡片會依螢幕寬度自動換行。"}, {"lang": "CSS", "title": "clamp 響應式字級", "code": "h1 {\n  font-size: clamp(24px, 5vw, 48px);\n}", "note": "字級會隨螢幕寬度變化，但不會小於 24px 或大於 48px。"}, {"lang": "CSS", "title": "CSS 變數", "code": ":root { --gold: #ead08c; }\n.title { color: var(--gold); }", "note": "把顏色集中在一處定義，日後只要改一個地方。"}, {"lang": "CSS", "title": "媒體查詢", "code": "@media (max-width: 700px) {\n  .sidebar { display: none; }\n}", "note": "螢幕寬度在 700px 以下時才套用裡面的樣式。"}, {"lang": "HTML", "title": "手機版必備的 viewport", "code": "<meta name=\"viewport\"\n      content=\"width=device-width, initial-scale=1\">", "note": "少了這一行，手機會用桌面寬度顯示網頁，再整頁縮小。"}, {"lang": "Git", "title": "查看狀態與紀錄", "code": "git status\ngit log --oneline -5", "note": "status 看目前有哪些修改，log 看最近五筆提交。"}, {"lang": "Git", "title": "提交與推送", "code": "git add .\ngit commit -m \"新增行程功能\"\ngit push", "note": "提交訊息要寫清楚這次改了什麼，日後才好回頭查找。"}, {"lang": "Git", "title": "建立分支開發新功能", "code": "git switch -c feature/weather\n# 開發完成後\ngit switch main\ngit merge feature/weather", "note": "在分支上開發，不會影響主分支，完成後再合併。"}, {"lang": "Git", "title": "推送被拒絕時", "code": "git pull --rebase origin main\ngit push", "note": "先把遠端的新提交拉下來接在前面，再推送自己的提交。"}, {"lang": "Git", "title": "放棄尚未提交的修改", "code": "git restore index.html     # 還原檔案\ngit restore --staged .     # 取消 git add", "note": "restore 會直接丟掉修改，執行前請確認那些內容真的不需要。"}, {"lang": "Python", "title": "f-string 格式化字串", "code": "name = \"小明\"\nprint(f\"你好，{name}！\")", "note": "在字串前加上 f，就能在大括號裡放變數。"}, {"lang": "Python", "title": "串列推導式", "code": "squares = [n * n for n in range(1, 6)]\n# [1, 4, 9, 16, 25]", "note": "一行就能產生新串列，取代較長的 for 迴圈。"}, {"lang": "Python", "title": "讀取文字檔", "code": "with open(\"notes.txt\", encoding=\"utf-8\") as f:\n    for line in f:\n        print(line.strip())", "note": "with 會在讀取完畢後自動關閉檔案；中文檔案記得指定 utf-8。"}, {"lang": "Python", "title": "字典的 get", "code": "user = {\"name\": \"Amy\"}\nprint(user.get(\"age\", \"未知\"))   # 未知", "note": "用 get 讀取不存在的鍵時，會回傳預設值，而不是報錯。"}, {"lang": "SQL", "title": "查詢與排序", "code": "SELECT title, day FROM events\nWHERE day >= '2026-11-01'\nORDER BY day ASC;", "note": "WHERE 篩選資料，ORDER BY 排序；ASC 是由小到大。"}, {"lang": "SQL", "title": "分組計數", "code": "SELECT category, COUNT(*) AS total\nFROM events\nGROUP BY category;", "note": "GROUP BY 把相同類別的資料合併，再用 COUNT 計算數量。"}]}</script>
 <script>
 /* ════════════════════════════════════════════════════════════
    天文計算模組
@@ -1411,7 +1567,7 @@ function setHover(h) {
   if (h && h.type !== 'body') { refs.hover.geometry.dispose(); refs.hover.geometry = new THREE.RingGeometry(h.r0, h.r1, 24, 1, deg(h.a0), deg(h.len)).rotateX(-Math.PI / 2); refs.hover.position.y = h.r0 < 3.08 ? .05 : .008; refs.hover.visible = true; }
   else refs.hover.visible = false;
   refs.crankMat.emissive.setHex(h && h.key === 'crank' ? 0x3a2410 : 0);
-  setLink(linkOf(h)); const c = renderer.domElement; c.classList.toggle('pick', !!h); c.style.cursor = dragKind(h) ? 'grab' : '';
+  setLink(linkOf(h)); const c = renderer.domElement; c.classList.toggle('pick', !!h); c.style.cursor = dragKind(h) ? 'var(--cur-grab)' : '';
 }
 function bindPointer() {
   const el = renderer.domElement;
@@ -1421,7 +1577,7 @@ function bindPointer() {
     drag = { h, kind, x0: e.clientX, y0: e.clientY, moved: false, T0: Tcur, acc: 0 };
     if (!kind) return;
     e.stopPropagation(); e.preventDefault(); const a = dialAngle(); drag.th = a ? a.th : 0;
-    controls.enabled = false; el.style.cursor = 'grabbing'; setPlaying(false);
+    controls.enabled = false; el.style.cursor = 'var(--cur-grabbing)'; setPlaying(false);
   }, { capture: true });
   window.addEventListener('pointermove', e => {
     if (drag && drag.kind) {
@@ -1523,7 +1679,7 @@ function updatePanels() {
     $('dateInput').value = `${nd.y}-${pad(nd.m)}-${pad(nd.d)}`;
   }
   const busy = playing || scrubbing || tween;
-  if (nKey !== lastPanelNight && (!busy || performance.now() - lastSkyT > 250)) { lastPanelNight = nKey; renderNight(nd); renderPlanets(nd); renderEvents(nd); renderGrid(nd); }
+  if (nKey !== lastPanelNight && (!busy || performance.now() - lastSkyT > 250)) { lastPanelNight = nKey; renderNight(nd); renderPlanets(nd); renderEvents(nd); renderGrid(nd); renderPlanner(); }
   if (performance.now() - lastSkyT > (busy ? 120 : 0) && snap && snap.T !== drawSky.lastT) { lastSkyT = performance.now(); drawSky(snap, nd); }
 }
 const moonPhaseName = E => E < 12 || E >= 348 ? '新月' : E < 80 ? '眉月' : E < 100 ? '上弦月' : E < 168 ? '盈凸月' : E < 192 ? '滿月' : E < 260 ? '虧凸月' : E < 280 ? '下弦月' : '殘月';
@@ -1587,10 +1743,11 @@ function renderGrid(nd) {
     const n = nightInfo(c), lunar = Solar.fromYmd(c.y, c.m, c.d).getLunar(), j = jdOf(c.y, c.m, c.d);
     const ev = evs.filter(e => { const lt = e.t + TZ; return lt >= j + .25 && lt < j + 1.25 && e.type !== 'phase'; })
       .sort((a, b) => (b.type === 'eclipse') - (a.type === 'eclipse') || (b.major ? 1 : 0) - (a.major ? 1 : 0))[0];
+    const hol = P.holidayOn(c), pev = P.eventsOn(`${c.y}-${c.m}-${c.d}`), ans = P.annivsOn(c);
     const b = document.createElement('button');
-    b.className = 'cell' + (c.m !== m ? ' out' : '') + (ev ? ' ev' : '') + (sameDay(c, nd) ? ' sel' : '') + (sameDay(c, tn) ? ' today' : '');
-    b.innerHTML = `${moonIcon(n.E, 5, 'mp')}<span class="n">${c.d}</span><span class="s">${ev ? shortOf(ev) : lunar.getDayInChinese()}</span><i class="bar g${n.grade}" style="width:calc(${Math.min(1, n.darkMin / 600) * 100}% - 8px)"></i>`;
-    b.setAttribute('aria-label', `${c.y}年${c.m}月${c.d}日晚上，觀星條件${GRADE[n.grade]}，無月暗夜 ${Math.floor(n.darkMin / 60)} 小時${ev ? '，' + ev.text : ''}`);
+    b.className = 'cell' + (c.m !== m ? ' out' : '') + (ev ? ' ev' : '') + (sameDay(c, nd) ? ' sel' : '') + (sameDay(c, tn) ? ' today' : '') + (hol ? (hol.off ? ' hol' : ' work') : '') + (P.blockOn(c) ? ' lj' : '');
+    b.innerHTML = `${moonIcon(n.E, 5, 'mp')}<span class="n">${c.d}</span><span class="s">${ev ? shortOf(ev) : lunar.getDayInChinese()}</span>${hol ? `<span class="hn">${hol.short}</span>` : ''}<span class="pm" aria-hidden="true">${pev.length ? '<i class="evd"></i>' : ''}${ans.length ? '<i class="and">♥</i>' : ''}</span><i class="bar g${n.grade}" style="width:calc(${Math.min(1, n.darkMin / 600) * 100}% - 8px)"></i>`;
+    b.setAttribute('aria-label', `${c.y}年${c.m}月${c.d}日晚上，觀星條件${GRADE[n.grade]}，無月暗夜 ${Math.floor(n.darkMin / 60)} 小時${ev ? '，' + ev.text : ''}${hol ? '，' + hol.name : ''}${ans.length ? '，紀念日：' + ans.map(a => a.name).join('、') : ''}${pev.length ? `，${pev.length} 個行程` : ''}`);
     b.addEventListener('click', () => { const mo = Math.round((Tcur - (jdOf(nd.y, nd.m, nd.d) + .5)) * 1440); setTime(jdOf(c.y, c.m, c.d) + .5 + clamp(mo, 0, 1439) / 1440); });
     grid.appendChild(b);
   }
@@ -1634,6 +1791,300 @@ function drawSky(st, nd) {
   const svg = $('skyChart'); svg.innerHTML = s;
   svg.querySelectorAll('[data-link]').forEach(g => { g.addEventListener('mouseenter', () => setLink(g.dataset.link)); g.addEventListener('mouseleave', () => setLink(null)); g.addEventListener('click', () => { focusBody(g.dataset.link); showBody(g.dataset.link); }); });
 }
+
+/* ════════════════════════════════════════════════════════════
+   十一之二、生活功能：行程、紀念日、國定假日、每日學習、鄉鎮天氣
+   ════════════════════════════════════════════════════════════ */
+const SEL = () => nightOf(Tcur);                      // 觀星版以「觀測夜」作為選取的日期
+const selectDate = (y, m, d) => setTime(jdOf(y, m, d) + 21 / 24);   // 點選清單時，跳到那天晚上 21:00
+const LEARN = JSON.parse(document.getElementById('learnData').textContent);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const wdOf = jd => Math.floor(jd + 1.5) % 7;                 // 0 = 星期日（jd 為當日 00:00）
+const keyOf = c => `${c.y}-${c.m}-${c.d}`;
+const P = (() => {
+  /* ── 資料儲存：預設存在這台裝置；在 claude.ai 上登入時，同步到使用者自己的私人空間 ── */
+  const LS_KEY = 'orrery-planner-v1';
+  let state = { events: [], annivs: [], learned: {}, wx: null };
+  try { const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (s) state = { ...state, ...s }; } catch (e) { /* 無法使用時以記憶體保存 */ }
+  let remote = null, chain = Promise.resolve(), timer = null;
+  const note = t => { const n = $('storeNote'); if (n) n.textContent = t; };
+  function save() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* 忽略 */ }
+    if (!remote) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const data = JSON.parse(JSON.stringify(state));
+      chain = chain.then(() => remote.set(data)).catch(() => note('雲端同步失敗，資料仍保存在這台裝置。'));
+    }, 600);
+  }
+  async function connect() {
+    note('資料儲存在這台裝置的瀏覽器中。');
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id(); if (!id) return;
+      const ref = db.doc(`data/users/${id}/planner`);
+      let to; const snap = await Promise.race([ref.get(), new Promise((_, rej) => { to = setTimeout(() => rej(new Error('timeout')), 10000); })]);
+      clearTimeout(to);
+      if (snap.exists) {
+        const d = snap.data() || {};
+        state = { events: d.events || [], annivs: d.annivs || [], learned: d.learned || {}, wx: d.wx || state.wx };
+        try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* 忽略 */ }
+      } else if (state.events.length || state.annivs.length) await ref.set(JSON.parse(JSON.stringify(state)));
+      remote = ref;
+      note('資料已同步到你的 Claude 帳號，只有你自己看得到。');
+      refresh();
+    } catch (e) { note('無法連線雲端，資料儲存在這台裝置的瀏覽器中。'); }
+  }
+  const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+
+  /* ── 國定假日、補假、補班與連假
+     2017–2027 年：採用行政院人事行政總處公布的「中華民國政府行政機關辦公日曆表」（政府資料開放平臺）
+     其他年份：尚無官方公告，依《紀念日及節日實施條例》與補假規則推算，並標示為推算 ── */
+  const OFFICIAL = {"2017":{"0101":[1,"開國紀念日"],"0102":[1,"補假"],"0127":[1,"農曆除夕"],"0128":[1,"春節"],"0129":[1,"春節"],"0130":[1,"春節"],"0131":[1,"補假"],"0201":[1,"補假"],"0218":[0,"調整上班"],"0227":[1,"調整放假"],"0228":[1,"和平紀念日"],"0403":[1,"補假"],"0404":[1,"兒童節及民族掃墓節"],"0529":[1,"調整放假"],"0530":[1,"端午節"],"0603":[0,"調整上班"],"0930":[0,"調整上班"],"1004":[1,"中秋節"],"1009":[1,"調整放假"],"1010":[1,"國慶日"]},"2018":{"0101":[1,"開國紀念日"],"0215":[1,"農曆除夕"],"0216":[1,"春節"],"0217":[1,"春節"],"0218":[1,"春節"],"0219":[1,"補假"],"0220":[1,"補假"],"0228":[1,"和平紀念日"],"0331":[0,"調整上班"],"0404":[1,"兒童節"],"0405":[1,"民族掃墓節"],"0406":[1,"調整放假"],"0618":[1,"端午節"],"0924":[1,"中秋節"],"1010":[1,"國慶日"],"1222":[0,"調整上班"],"1231":[1,"調整放假"]},"2019":{"0101":[1,"開國紀念日"],"0119":[0,"調整上班"],"0204":[1,"農曆除夕"],"0205":[1,"春節"],"0206":[1,"春節"],"0207":[1,"春節"],"0208":[1,"調整放假"],"0223":[0,"調整上班"],"0228":[1,"和平紀念日"],"0301":[1,"調整放假"],"0404":[1,"兒童節"],"0405":[1,"民族掃墓節"],"0607":[1,"端午節"],"0913":[1,"中秋節"],"1005":[0,"調整上班"],"1010":[1,"國慶日"],"1011":[1,"調整放假"]},"2020":{"0101":[1,"開國紀念日"],"0123":[1,"調整放假"],"0124":[1,"農曆除夕"],"0125":[1,"春節"],"0126":[1,"春節"],"0127":[1,"春節"],"0128":[1,"補假"],"0129":[1,"補假"],"0215":[0,"調整上班"],"0228":[1,"和平紀念日"],"0402":[1,"補假"],"0403":[1,"放假"],"0404":[1,"兒童節及民族掃墓節"],"0620":[0,"調整上班"],"0625":[1,"端午節"],"0626":[1,"調整放假"],"0926":[0,"調整上班"],"1001":[1,"中秋節"],"1002":[1,"調整放假"],"1009":[1,"補假"],"1010":[1,"國慶日"]},"2021":{"0101":[1,"開國紀念日"],"0210":[1,"調整放假"],"0211":[1,"農曆除夕"],"0212":[1,"春節"],"0213":[1,"春節"],"0214":[1,"春節"],"0215":[1,"補假"],"0216":[1,"補假"],"0220":[0,"補行上班"],"0228":[1,"和平紀念日"],"0301":[1,"補假"],"0402":[1,"補假"],"0404":[1,"兒童節及民族掃墓節"],"0405":[1,"補假"],"0614":[1,"端午節"],"0911":[0,"補行上班"],"0920":[1,"調整放假"],"0921":[1,"中秋節"],"1010":[1,"國慶日"],"1011":[1,"補假"],"1231":[1,"補假"]},"2022":{"0101":[1,"開國紀念日"],"0122":[0,"補行上班"],"0131":[1,"農曆除夕"],"0201":[1,"春節"],"0202":[1,"春節"],"0203":[1,"春節"],"0204":[1,"調整放假"],"0228":[1,"和平紀念日"],"0404":[1,"兒童節"],"0405":[1,"民族掃墓節"],"0603":[1,"端午節"],"0909":[1,"補假"],"0910":[1,"中秋節"],"1010":[1,"國慶日"]},"2023":{"0101":[1,"開國紀念日"],"0102":[1,"補假"],"0107":[0,"補行上班"],"0120":[1,"小年夜"],"0121":[1,"農曆除夕"],"0122":[1,"春節"],"0123":[1,"春節"],"0124":[1,"春節"],"0125":[1,"補假"],"0126":[1,"補假"],"0127":[1,"調整放假"],"0204":[0,"補行上班"],"0218":[0,"補行上班"],"0227":[1,"調整放假"],"0228":[1,"和平紀念日"],"0325":[0,"補行上班"],"0403":[1,"調整放假"],"0404":[1,"兒童節"],"0405":[1,"民族掃墓節"],"0617":[0,"補行上班"],"0622":[1,"端午節"],"0623":[1,"調整放假"],"0923":[0,"補行上班"],"0929":[1,"中秋節"],"1009":[1,"調整放假"],"1010":[1,"國慶日"]},"2024":{"0101":[1,"開國紀念日"],"0208":[1,"小年夜"],"0209":[1,"農曆除夕"],"0210":[1,"春節"],"0211":[1,"春節"],"0212":[1,"春節"],"0213":[1,"補假"],"0214":[1,"補假"],"0217":[0,"補行上班"],"0228":[1,"和平紀念日"],"0404":[1,"兒童節及民族掃墓節"],"0405":[1,"補假"],"0610":[1,"端午節"],"0917":[1,"中秋節"],"1010":[1,"國慶日"]},"2025":{"0101":[1,"開國紀念日"],"0127":[1,"小年夜"],"0128":[1,"農曆除夕"],"0129":[1,"春節"],"0130":[1,"春節"],"0131":[1,"春節"],"0208":[0,"補行上班"],"0228":[1,"和平紀念日"],"0403":[1,"補假"],"0404":[1,"兒童節及民族掃墓節"],"0530":[1,"補假"],"0531":[1,"端午節"],"0928":[1,"孔子誕辰紀念日"],"0929":[1,"補假"],"1006":[1,"中秋節"],"1010":[1,"國慶日"],"1024":[1,"補假"],"1025":[1,"臺灣光復暨金門古寧頭大捷紀念日"],"1225":[1,"行憲紀念日"]},"2026":{"0101":[1,"開國紀念日"],"0215":[1,"小年夜"],"0216":[1,"農曆除夕"],"0217":[1,"春節"],"0218":[1,"春節"],"0219":[1,"春節"],"0220":[1,"補假"],"0227":[1,"補假"],"0228":[1,"和平紀念日"],"0403":[1,"補假"],"0404":[1,"兒童節"],"0405":[1,"清明節"],"0406":[1,"補假"],"0501":[1,"勞動節"],"0619":[1,"端午節"],"0925":[1,"中秋節"],"0928":[1,"孔子誕辰紀念日/教師節"],"1009":[1,"補假"],"1010":[1,"國慶日"],"1025":[1,"臺灣光復暨金門古寧頭大捷紀念日"],"1026":[1,"補假"],"1225":[1,"行憲紀念日"]},"2027":{"0101":[1,"開國紀念日"],"0204":[1,"小年夜"],"0205":[1,"農曆除夕"],"0206":[1,"春節"],"0207":[1,"春節"],"0208":[1,"春節"],"0209":[1,"補假"],"0210":[1,"補假"],"0228":[1,"和平紀念日"],"0301":[1,"補假"],"0404":[1,"兒童節"],"0405":[1,"清明節"],"0406":[1,"補假"],"0430":[1,"補假"],"0501":[1,"勞動節"],"0609":[1,"端午節"],"0915":[1,"中秋節"],"0928":[1,"孔子誕辰紀念日/教師節"],"1010":[1,"國慶日"],"1011":[1,"補假"],"1025":[1,"臺灣光復暨金門古寧頭大捷紀念日"],"1224":[1,"補假"],"1225":[1,"行憲紀念日"],"1231":[1,"補假"]}};
+  const OFF_SHORT = { '開國紀念日': '元旦', '農曆除夕': '除夕', '小年夜': '小年夜', '春節': '春節', '補假': '補假', '調整放假': '彈性放假', '調整上班': '補班', '補行上班': '補班',
+    '和平紀念日': '和平紀念', '兒童節': '兒童節', '兒童節及民族掃墓節': '兒童清明', '民族掃墓節': '清明', '清明節': '清明', '勞動節': '勞動節', '端午節': '端午', '中秋節': '中秋',
+    '國慶日': '國慶', '臺灣光復暨金門古寧頭大捷紀念日': '光復節', '行憲紀念日': '行憲', '放假': '放假' };
+  const shortName = d => OFF_SHORT[d] || (d.startsWith('孔子誕辰') ? '教師節' : d.slice(0, 4));
+  function ruleList(y) {                                     // 依法規推算（無官方資料的年份）
+    const list = [], add = (jd, name, short, grp) => list.push({ jd, name, short, grp });
+    const J = (m, d) => jdOf(y, m, d);
+    const LJ = (lm, ld) => { const s = Lunar.fromYmd(y, lm, ld).getSolar(); return jdOf(s.getYear(), s.getMonth(), s.getDay()); };
+    add(J(1, 1), '開國紀念日', '元旦');
+    const cny = LJ(1, 1);
+    if (y >= 2026) add(cny - 2, '小年夜', '小年夜', 'spring');
+    add(cny - 1, '農曆除夕', '除夕', 'spring');
+    [0, 1, 2].forEach(k => add(cny + k, '春節', '春節', 'spring'));
+    add(J(2, 28), '和平紀念日', '和平紀念');
+    const qs = Solar.fromYmd(y, 6, 1).getLunar().getJieQiTable()['清明'], qmJ = jdOf(qs.getYear(), qs.getMonth(), qs.getDay());
+    let kid = J(4, 4);
+    if (kid === qmJ) kid += wdOf(kid) === 4 ? 1 : -1;
+    add(kid, '兒童節', '兒童節'); add(qmJ, '清明節', '清明');
+    if (y >= 2026) add(J(5, 1), '勞動節', '勞動節');
+    add(LJ(5, 5), '端午節', '端午'); add(LJ(8, 15), '中秋節', '中秋');
+    if (y >= 2025) add(J(9, 28), '孔子誕辰紀念日/教師節', '教師節');
+    add(J(10, 10), '國慶日', '國慶');
+    if (y >= 2025) { add(J(10, 25), '臺灣光復暨金門古寧頭大捷紀念日', '光復節'); add(J(12, 25), '行憲紀念日', '行憲'); }
+    const off = new Set(list.map(h => h.jd)), work = jd => wdOf(jd) !== 0 && wdOf(jd) !== 6 && !off.has(jd);
+    const spring = list.filter(h => h.grp === 'spring');
+    let need = spring.filter(h => [0, 6].includes(wdOf(h.jd))).length, d = Math.max(...spring.map(h => h.jd)) + 1;
+    while (need > 0) { if (work(d)) { list.push({ jd: d, name: '補假', short: '補假' }); off.add(d); need--; } d++; }
+    list.filter(h => !h.grp && h.short !== '補假').sort((a, b) => a.jd - b.jd).forEach(h => {
+      const w = wdOf(h.jd); if (w !== 0 && w !== 6) return;
+      const step = w === 6 ? -1 : 1; let x = h.jd + step;
+      while (!work(x)) x += step;
+      list.push({ jd: x, name: '補假', short: '補假' }); off.add(x);
+    });
+    return list;
+  }
+  const holCache = new Map();
+  function holidaysOf(y) {
+    if (holCache.has(y)) return holCache.get(y);
+    const map = new Map(), official = !!OFFICIAL[y];
+    if (official) Object.entries(OFFICIAL[y]).forEach(([md, [off, desc]]) => {
+      const m = +md.slice(0, 2), d = +md.slice(2), c = { y, m, d };
+      map.set(keyOf(c), { name: desc || (off ? '放假' : '上班'), short: shortName(desc), off: !!off, c, jd: jdOf(y, m, d) });
+    });
+    else ruleList(y).sort((a, b) => a.jd - b.jd).forEach(h => {
+      const c = ymdOf(h.jd + .5), k = keyOf(c);
+      if (!map.has(k)) map.set(k, { name: h.name, short: h.short, off: true, c, jd: h.jd, guess: true });
+    });
+    const res = { list: [...map.values()].sort((a, b) => a.jd - b.jd), map, official };
+    holCache.set(y, res); return res;
+  }
+  const holidayOn = c => holidaysOf(c.y).map.get(keyOf(c)) || (c.m === 12 && !OFFICIAL[c.y] ? holidaysOf(c.y + 1).map.get(keyOf(c)) : null);
+  const isOff = c => { const h = holidayOn(c); return h ? h.off : [0, 6].includes(wdOf(jdOf(c.y, c.m, c.d))); };
+  /* 連假：放假日（含週末）連續 3 天以上，且其中有國定假日、補假或彈性放假 */
+  const PRI = ['春節', '除夕', '小年夜', '元旦', '和平紀念', '兒童清明', '兒童節', '清明', '勞動節', '端午', '中秋', '教師節', '國慶', '光復節', '行憲'];
+  const blockCache = new Map();
+  function blockOn(c) {
+    const k = keyOf(c); if (blockCache.has(k)) return blockCache.get(k);
+    let res = null;
+    if (isOff(c)) {
+      const j = jdOf(c.y, c.m, c.d); let a = j, b = j;
+      while (a - j > -20 && isOff(ymdOf(a - 1 + .5))) a--;
+      while (b - j < 20 && isOff(ymdOf(b + 1 + .5))) b++;
+      const days = []; for (let x = a; x <= b; x++) days.push(holidayOn(ymdOf(x + .5)));
+      const hs = days.filter(h => h && h.off);
+      if (b - a + 1 >= 3 && hs.length) {
+        const main = PRI.find(p => hs.some(h => h.short === p));
+        res = { len: b - a + 1, idx: j - a + 1, name: (main || '國定') + '連假', start: ymdOf(a + .5), end: ymdOf(b + .5), guess: hs.some(h => h.guess) };
+      }
+    }
+    blockCache.set(k, res); return res;
+  }
+
+  /* ── 行程 ── */
+  const eventsOn = key => state.events.filter(e => e.date === key).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  function addEvent(date, time, title) { state.events.push({ id: uid(), date, time, title }); save(); }
+  function removeEvent(id) { state.events = state.events.filter(e => e.id !== id); save(); }
+
+  /* ── 紀念日：每年國曆或農曆同一天 ── */
+  function annivDate(a, Y) {
+    if (a.type === 'solar') { const d = Math.min(a.d, dim(Y, a.m)); return { y: Y, m: a.m, d }; }
+    for (const LY of [Y - 1, Y]) {
+      if (LY < YEAR_MIN - 1) continue;
+      const n = LunarMonth.fromYm(LY, a.m); if (!n) continue;
+      const s = Lunar.fromYmd(LY, a.m, Math.min(a.d, n.getDayCount())).getSolar();
+      if (s.getYear() === Y) return { y: Y, m: s.getMonth(), d: s.getDay(), ly: LY };
+    }
+    return null;
+  }
+  const annivYears = (a, oc) => (a.type === 'solar' ? oc.y : oc.ly) - a.y0;
+  const annivsOn = c => state.annivs.filter(a => { const o = annivDate(a, c.y); return o && o.m === c.m && o.d === c.d; });
+  function addAnniv(name, type, c) {
+    if (type === 'lunar') { const l = Solar.fromYmd(c.y, c.m, c.d).getLunar(); state.annivs.push({ id: uid(), name, type, m: Math.abs(l.getMonth()), d: l.getDay(), y0: l.getYear() }); }
+    else state.annivs.push({ id: uid(), name, type, m: c.m, d: c.d, y0: c.y });
+    save();
+  }
+  function removeAnniv(id) { state.annivs = state.annivs.filter(a => a.id !== id); save(); }
+  const annivDesc = a => a.type === 'solar' ? `每年國曆 ${a.m} 月 ${a.d} 日` : `每年農曆${LMONTH[a.m - 1]}月${['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'][a.d - 1]}`;
+
+  /* ── 畫面：這一天 ── */
+  function renderDay() {
+    const c = SEL(), key = keyOf(c), hol = holidayOn(c), evs = eventsOn(key), ans = annivsOn(c);
+    $('dayTitle').textContent = `${c.m} 月 ${c.d} 日（星期${WEEK[Solar.fromYmd(c.y, c.m, c.d).getWeek()]}）`;
+    const rows = [];
+    if (hol) rows.push(hol.off ? `<li class="it hol"><i class="ic">假</i><span>${esc(hol.name)}${hol.guess ? '<small>依法規推算，尚無官方公告</small>' : ''}</span></li>`
+                               : `<li class="it wk"><i class="ic">補班</i><span>${esc(hol.name)}<small>這天要上班</small></span></li>`);
+    const blk = blockOn(c);
+    if (blk) rows.push(`<li class="it lj"><i class="ic">連假</i><span>${blk.name}第 ${blk.idx} 天，共 ${blk.len} 天<small>${blk.start.m}/${blk.start.d}（${WEEK[wdOf(jdOf(blk.start.y, blk.start.m, blk.start.d))]}）至 ${blk.end.m}/${blk.end.d}（${WEEK[wdOf(jdOf(blk.end.y, blk.end.m, blk.end.d))]}）${blk.guess ? '，依法規推算' : ''}</small></span></li>`);
+    ans.forEach(a => { const n = annivYears(a, annivDate(a, c.y)); rows.push(`<li class="it an"><i class="ic">♥</i><span>${esc(a.name)}<small>${n > 0 ? `第 ${n} 週年` : '從今天開始'}，${annivDesc(a)}</small></span><button class="del" data-an="${a.id}" aria-label="移除紀念日 ${esc(a.name)}">移除</button></li>`); });
+    evs.forEach(e => rows.push(`<li class="it ev"><i class="ic">${e.time ? esc(e.time) : '全天'}</i><span>${esc(e.title)}</span><button class="del" data-ev="${e.id}" aria-label="移除行程 ${esc(e.title)}">移除</button></li>`));
+    $('dayItems').innerHTML = rows.length ? rows.join('') : '<li class="empty">這一天還沒有行程或紀念日。</li>';
+    $('dayItems').querySelectorAll('[data-ev]').forEach(b => b.onclick = () => { removeEvent(b.dataset.ev); refresh(); });
+    $('dayItems').querySelectorAll('[data-an]').forEach(b => b.onclick = () => { removeAnniv(b.dataset.an); refresh(); });
+  }
+  /* ── 畫面：即將到來（從今天起 60 天） ── */
+  function renderUpcoming() {
+    const T0 = ymdOf(nowLocal()), j0 = jdOf(T0.y, T0.m, T0.d), out = [];
+    for (let k = 0; k <= 60; k++) {
+      const c = ymdOf(j0 + k + .5), key = keyOf(c), hol = holidayOn(c);
+      const blk = blockOn(c);
+      if (blk && (blk.idx === 1 || k === 0)) out.push({ k, c, cls: 'lj', text: `${blk.name} ${blk.len} 天（${blk.start.m}/${blk.start.d}–${blk.end.m}/${blk.end.d}）` });
+      if (hol && hol.off && hol.short !== '補假' && hol.short !== '彈性放假') out.push({ k, c, cls: 'hol', text: hol.name });
+      if (hol && !hol.off) out.push({ k, c, cls: 'wk', text: `${hol.name}（這天要上班）` });
+      annivsOn(c).forEach(a => { const n = annivYears(a, annivDate(a, c.y)); out.push({ k, c, cls: 'an', text: `${a.name}${n > 0 ? `（第 ${n} 週年）` : ''}` }); });
+      eventsOn(key).forEach(e => out.push({ k, c, cls: 'ev', text: `${e.time ? e.time + ' ' : ''}${e.title}` }));
+    }
+    const when = k => k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : `${k} 天後`;
+    $('upList').innerHTML = out.length ? out.slice(0, 12).map((o, i) => `<li><button class="up ${o.cls}" data-i="${i}"><span class="w">${when(o.k)}</span><span class="t">${esc(o.text)}</span><span class="d">${o.c.m}/${o.c.d}</span></button></li>`).join('') : '<li class="empty">未來 60 天沒有安排。</li>';
+    $('upList').querySelectorAll('button').forEach(b => b.onclick = () => { const o = out[+b.dataset.i]; selectDate(o.c.y, o.c.m, o.c.d); });
+  }
+  /* ── 畫面：國定假日（所選年份） ── */
+  let holYearShown = null;
+  function renderHolidays() {
+    if (!$('holList')) return;
+    if (holYearShown === SEL().y) return; holYearShown = SEL().y;
+    const { list } = holidaysOf(SEL().y);
+    $('holYear').textContent = `${SEL().y} 年`;
+    $('holList').innerHTML = list.filter(h => h.c.y === SEL().y).map(h => `<li class="${h.short === '補假' || h.short === '彈性放假' ? 'mk' : ''}${h.off ? '' : ' wk'}"><button data-k="${keyOf(h.c)}"><span class="d">${h.c.m}/${h.c.d}（${WEEK[wdOf(h.jd)]}）</span><span>${esc(h.name)}${h.off ? '' : '（上班）'}</span></button></li>`).join('');
+    $('holList').querySelectorAll('button').forEach(b => b.onclick = () => { const [y, m, d] = b.dataset.k.split('-').map(Number); selectDate(y, m, d); });
+    $('holNote').textContent = holidaysOf((typeof SEL === 'function' ? SEL() : sel).y).official ? `${(typeof SEL === 'function' ? SEL() : sel).y} 年資料取自行政院人事行政總處公布之政府行政機關辦公日曆表。` : `${(typeof SEL === 'function' ? SEL() : sel).y} 年尚無官方公告，以下依現行法規推算，實際以人事行政總處公告為準。`;
+  }
+  /* ── 每日學習：依所選日期輪替，可前後切換 ── */
+  let tab = 'en', offset = 0, lastLearnKey = '';
+  function learnItem() {
+    const arr = LEARN[tab], base = Math.floor(jdOf(SEL().y, SEL().m, SEL().d) + .5) + (tab === 'code' ? 7 : 0);
+    const i = (((base + offset) % arr.length) + arr.length) % arr.length;
+    return { it: arr[i], i, id: `${tab}:${i}` };
+  }
+  function renderLearn() {
+    const k = keyOf(SEL()); if (k !== lastLearnKey) { lastLearnKey = k; offset = 0; }
+    const { it, id } = learnItem(), box = $('learnBox');
+    box.innerHTML = '';
+    if (tab === 'en') {
+      box.innerHTML = `<p class="word">${esc(it.w)} <span class="pos">${esc(it.p)}</span> <span class="ipa">${esc(it.ipa)}</span></p><p class="zh">${esc(it.zh)}</p><p class="ex">${esc(it.ex)}</p><p class="exz">${esc(it.exz)}</p>`;
+    } else {
+      box.innerHTML = `<p class="ctitle"><span class="lang">${esc(it.lang)}</span>${esc(it.title)}</p><pre><code></code></pre><p class="zh">${esc(it.note)}</p>`;
+      box.querySelector('code').textContent = it.code;
+    }
+    const done = !!state.learned[id];
+    $('lDone').textContent = done ? '✓ 已學會' : '標記為已學會'; $('lDone').setAttribute('aria-pressed', done);
+    const n = Object.keys(state.learned).filter(x => x.startsWith(tab + ':')).length;
+    $('learnStat').textContent = `${tab === 'en' ? '英文單字' : '程式碼'}已學會 ${n} / ${LEARN[tab].length} 則`;
+  }
+  function bindLearn() {
+    document.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => {
+      tab = b.dataset.tab; offset = 0;
+      document.querySelectorAll('.tabs [data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
+      renderLearn();
+    });
+    $('lPrev').onclick = () => { offset--; renderLearn(); };
+    $('lNext').onclick = () => { offset++; renderLearn(); };
+    $('lDone').onclick = () => { const { id } = learnItem(); if (state.learned[id]) delete state.learned[id]; else state.learned[id] = Date.now(); save(); renderLearn(); };
+  }
+  /* ── 表單 ── */
+  function bindForms() {
+    $('evForm').addEventListener('submit', e => {
+      e.preventDefault(); const t = $('evTitle').value.trim(); if (!t) return;
+      addEvent(keyOf(SEL()), $('evTime').value, t); $('evTitle').value = ''; $('evTime').value = ''; refresh();
+    });
+    $('anForm').addEventListener('submit', e => {
+      e.preventDefault(); const t = $('anName').value.trim(); if (!t) return;
+      addAnniv(t, $('anType').value, SEL()); $('anName').value = ''; refresh();
+    });
+  }
+
+  /* ── 鄉鎮天氣：Open-Meteo（免金鑰）地名搜尋與預報 ── */
+  const COUNTIES = [['臺北市', 25.0375, 121.5637], ['新北市', 25.012, 121.465], ['桃園市', 24.9937, 121.301], ['臺中市', 24.1618, 120.6469], ['臺南市', 22.992, 120.185],
+    ['高雄市', 22.6205, 120.312], ['基隆市', 25.131, 121.744], ['新竹市', 24.8066, 120.9686], ['新竹縣', 24.827, 121.0128], ['苗栗縣', 24.5602, 120.8214], ['彰化縣', 24.0752, 120.544],
+    ['南投縣', 23.9025, 120.69], ['雲林縣', 23.7092, 120.5434], ['嘉義市', 23.4801, 120.4491], ['嘉義縣', 23.459, 120.333], ['屏東縣', 22.6727, 120.488], ['宜蘭縣', 24.73, 121.763],
+    ['花蓮縣', 23.991, 121.611], ['臺東縣', 22.756, 121.144], ['澎湖縣', 23.565, 119.579], ['金門縣', 24.437, 118.319], ['連江縣', 26.16, 119.95]];
+  const WMO = { 0: ['晴', '☀️'], 1: ['大致晴朗', '🌤️'], 2: ['局部多雲', '⛅'], 3: ['陰', '☁️'], 45: ['霧', '🌫️'], 48: ['霧凇', '🌫️'], 51: ['毛毛雨', '🌦️'], 53: ['毛毛雨', '🌦️'], 55: ['較密的毛毛雨', '🌧️'],
+    56: ['凍毛毛雨', '🌧️'], 57: ['凍毛毛雨', '🌧️'], 61: ['小雨', '🌦️'], 63: ['中雨', '🌧️'], 65: ['大雨', '🌧️'], 66: ['凍雨', '🌧️'], 67: ['凍雨', '🌧️'], 71: ['小雪', '🌨️'], 73: ['中雪', '🌨️'],
+    75: ['大雪', '❄️'], 77: ['雪粒', '🌨️'], 80: ['短暫陣雨', '🌦️'], 81: ['陣雨', '🌧️'], 82: ['強陣雨', '⛈️'], 85: ['陣雪', '🌨️'], 86: ['強陣雪', '❄️'], 95: ['雷雨', '⛈️'], 96: ['雷雨伴隨冰雹', '⛈️'], 99: ['強雷雨伴隨冰雹', '⛈️'] };
+  const wmo = c => WMO[c] || ['—', '🌡️'];
+  function wxMsg(html) { $('wxBox').innerHTML = `<p class="wx-msg">${html}</p>`; }
+  const OFFLINE = '目前無法連線天氣服務。在 claude.ai 的預覽頁面中，網頁不能連線到外部網站；把檔案部署到 GitHub Pages 或自己的網站後，就能正常顯示。';
+  async function loadWeather() {
+    const L = state.wx || { name: '臺北市', lat: 25.0375, lon: 121.5637 };
+    $('wxPlace').textContent = L.name;
+    wxMsg('正在讀取天氣…');
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation`
+        + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTaipei&forecast_days=7`;
+      const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+      const d = await r.json(), cur = d.current, [txt, ico] = wmo(cur.weather_code);
+      const days = d.daily.time.map((t, i) => {
+        const [y, m, dd] = t.split('-').map(Number), isSel = y === SEL().y && m === SEL().m && dd === SEL().d, [tx, ic] = wmo(d.daily.weather_code[i]);
+        return `<li class="${isSel ? 'SEL()' : ''}"><span class="dd">${i === 0 ? '今天' : `${m}/${dd}（${WEEK[Solar.fromYmd(y, m, dd).getWeek()]}）`}</span><span class="ic" title="${tx}">${ic}</span><span class="tx">${tx}</span><span class="tp">${Math.round(d.daily.temperature_2m_min[i])}–${Math.round(d.daily.temperature_2m_max[i])}°</span><span class="pp">💧${d.daily.precipitation_probability_max[i] ?? '—'}%</span></li>`;
+      }).join('');
+      $('wxBox').innerHTML = `<div class="wx-now"><span class="big">${ico}</span><div><p class="t">${Math.round(cur.temperature_2m)}°C <small>${txt}</small></p>
+        <p class="muted">體感 ${Math.round(cur.apparent_temperature)}°　濕度 ${cur.relative_humidity_2m}%　風速 ${Math.round(cur.wind_speed_10m)} km/h</p></div></div><ul class="wx-days">${days}</ul>`;
+    } catch (e) { wxMsg(OFFLINE); }
+  }
+  async function searchPlace() {
+    const q = $('wxQ').value.trim(); if (!q) return;
+    const ul = $('wxResults'); ul.innerHTML = '<li class="empty">搜尋中…</li>';
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=zh&countryCode=TW&format=json`);
+      const d = await r.json(), res = d.results || [];
+      if (!res.length) { ul.innerHTML = '<li class="empty">找不到這個地名，試試加上「區」「鄉」「鎮」，或從縣市選單選擇。</li>'; return; }
+      ul.innerHTML = res.map((p, i) => `<li><button data-i="${i}">${esc(p.name)}<small>${esc([p.admin2, p.admin1].filter(Boolean).join('，'))}</small></button></li>`).join('');
+      ul.querySelectorAll('button').forEach(b => b.onclick = () => { const p = res[+b.dataset.i]; setPlace(`${p.name}${p.admin1 && p.admin1 !== p.name ? '，' + p.admin1 : ''}`, p.latitude, p.longitude); ul.innerHTML = ''; });
+    } catch (e) { ul.innerHTML = ''; wxMsg(OFFLINE); }
+  }
+  function setPlace(name, lat, lon) { state.wx = { name, lat: +(+lat).toFixed(4), lon: +(+lon).toFixed(4) }; save(); loadWeather(); }
+  function bindWeather() {
+    const sel_ = $('wxCounty');
+    sel_.innerHTML = '<option value="">或選擇縣市</option>' + COUNTIES.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
+    sel_.onchange = () => { if (sel_.value === '') return; const c = COUNTIES[+sel_.value]; setPlace(c[0], c[1], c[2]); sel_.value = ''; };
+    $('wxGo').onclick = searchPlace;
+    $('wxQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } });
+    $('wxHere').onclick = () => {
+      if (!navigator.geolocation) { wxMsg('這個瀏覽器不支援定位。'); return; }
+      wxMsg('正在取得位置…');
+      navigator.geolocation.getCurrentPosition(p => setPlace('目前位置', p.coords.latitude, p.coords.longitude), () => wxMsg('無法取得位置，請改用搜尋或縣市選單。'), { timeout: 10000 });
+    };
+  }
+
+  function refresh() { renderDay(); renderUpcoming(); renderLearn(); holYearShown = null; renderHolidays(); renderGrid(nightOf(Tcur)); }
+  function init() { bindForms(); bindLearn(); bindWeather(); loadWeather(); connect(); }
+  return { holidayOn, blockOn, isOff, eventsOn, annivsOn, renderDay, renderUpcoming, renderHolidays, renderLearn, init, refresh };
+})();
+function renderPlanner() { P.renderDay(); P.renderHolidays(); P.renderLearn(); }
 
 /* ── 說明銘牌 ── */
 const plaque = $('plaque');
@@ -1705,7 +2156,9 @@ let T0 = nowLocal(); const tl = ymdOf(T0), hr = tl.h + tl.mi / 60;
 if (hr >= 6 && hr < 18) T0 = jdOf(tl.y, tl.m, tl.d) + 21 / 24;
 const hm = location.hash.match(/^#(\d{4})-(\d{2})-(\d{2})$/); if (hm) T0 = jdOf(+hm[1], +hm[2], +hm[3]) + 21 / 24;
 Tcur = T0 - (reduced ? 0 : 90); setTime(T0, { dur: 3200 });
+P.init();
 requestAnimationFrame(t => { lastFrame = t; frame(t); });
+P.renderUpcoming();
 if (renderer && document.fonts) document.fonts.ready.then(() => { paintInto(tex.dial, zodiacPainter(false)); paintInto(tex.dialMetal, zodiacPainter(true)); const y = refs.calYear; refs.calYear = null; repaintCalendar(y); });
 })();
 </script>
@@ -1766,6 +2219,77 @@ if (renderer && document.fonts) document.fonts.ready.then(() => { paintInto(tex.
     requestAnimationFrame(draw);
   }
   addEventListener('resize', size); size(); requestAnimationFrame(draw);
+})();
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   滑鼠移動軌跡：碎星星
+   移動時灑出小星星，受重力落下、旋轉、閃爍；較大的星星在途中碎裂成更小的碎片。
+   點擊時迸出一小團星星。尊重「減少動態效果」設定。
+   ════════════════════════════════════════════════════════════ */
+(() => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.createElement('canvas');
+  cv.id = 'starTrail'; cv.setAttribute('aria-hidden', 'true');
+  Object.assign(cv.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '9999' });
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1, parts = [], running = false, last = 0, lx = null, ly = null;
+  const COLORS = ['255,222,140', '255,245,210', '255,200,120', '200,220,255', '255,180,200'];
+  function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  function spawn(x, y, n, burst) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = burst ? 80 + Math.random() * 220 : 15 + Math.random() * 60;
+      parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (burst ? 60 : 20), r: burst ? 4 + Math.random() * 6 : 3 + Math.random() * 5,
+        rot: Math.random() * 6.28, vr: (Math.random() - .5) * 8, life: 0, max: .7 + Math.random() * .8, col: COLORS[Math.random() * COLORS.length | 0],
+        tw: Math.random() * 6.28, shard: false });
+    }
+    if (parts.length > 400) parts.splice(0, parts.length - 400);
+    if (!running) { running = true; last = performance.now(); requestAnimationFrame(step); }
+  }
+  function starPath(r, spikes = 5, inner = .45) {
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) { const rr = i % 2 ? r * inner : r, a = i * Math.PI / spikes - Math.PI / 2; i ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    ctx.closePath();
+  }
+  function step(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    const born = [];
+    parts = parts.filter(p => {
+      p.life += dt; if (p.life >= p.max) return false;
+      p.vy += 240 * dt; p.vx *= .985; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; p.tw += dt * 14;
+      // 碎裂：較大的星星飛到一半時裂成 3～4 片小碎星
+      if (!p.shard && p.r > 5 && p.life > p.max * .45) {
+        const n = 3 + (Math.random() * 2 | 0);
+        for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, sp = 40 + Math.random() * 90;
+          born.push({ ...p, vx: p.vx * .4 + Math.cos(a) * sp, vy: p.vy * .4 + Math.sin(a) * sp, r: p.r * (.3 + Math.random() * .2), life: 0, max: .4 + Math.random() * .5, shard: true, vr: (Math.random() - .5) * 14 }); }
+        return false;
+      }
+      const k = p.life / p.max, al = (1 - k) * (.65 + .35 * Math.sin(p.tw)), r = p.r * (1 - k * .4);
+      ctx.save(); ctx.translate(p.x, p.y);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 2.4);
+      g.addColorStop(0, `rgba(${p.col},${al * .55})`); g.addColorStop(1, `rgba(${p.col},0)`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 2.4, 0, 6.283); ctx.fill();
+      ctx.rotate(p.rot); starPath(r, p.shard ? 4 : 5, p.shard ? .35 : .45);
+      ctx.fillStyle = `rgba(${p.col},${al})`; ctx.fill();
+      ctx.restore();
+      return true;
+    });
+    parts.push(...born);
+    ctx.globalCompositeOperation = 'source-over';
+    if (parts.length) requestAnimationFrame(step); else { running = false; ctx.clearRect(0, 0, W, H); }
+  }
+  addEventListener('pointermove', e => {
+    if (lx === null) { lx = e.clientX; ly = e.clientY; return; }
+    const d = Math.hypot(e.clientX - lx, e.clientY - ly);
+    if (d < 9) return;
+    spawn(e.clientX, e.clientY, Math.min(3, 1 + (d / 30 | 0)), false);
+    lx = e.clientX; ly = e.clientY;
+  }, { passive: true });
+  addEventListener('pointerdown', e => spawn(e.clientX, e.clientY, 14, true), { passive: true });
+  addEventListener('resize', size); size();
 })();
 </script>
 </body>
