@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>太陽系｜3D 軌道模擬</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --gold: #d6ad69;
+      --muted: #a9a08e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #080d13;
+      color: #eee5d2;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+    }
+
+    .panel {
+      position: fixed;
+      z-index: 2;
+      top: 18px;
+      left: 18px;
+      width: min(340px, calc(100vw - 36px));
+      padding: 17px 18px;
+      border: 1px solid rgba(214, 173, 105, .48);
+      border-radius: 13px;
+      background: linear-gradient(145deg, rgba(22, 29, 35, .94), rgba(9, 14, 20, .88));
+      box-shadow: 0 12px 40px #0008;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: 19px;
+      letter-spacing: .08em;
+      color: #e7c68c;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 13px;
+    }
+
+    button {
+      border: 1px solid #9f8051;
+      border-radius: 7px;
+      background: #2a2924;
+      color: #f1dfbd;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    button:hover {
+      background: #48402f;
+    }
+
+    .speedrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #d5c8b0;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: #c89a55;
+      min-width: 80px;
+    }
+
+    #speedValue {
+      width: 48px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      margin-top: 13px;
+      font-size: 12px;
+      color: #d7cbb6;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .footer {
+      margin-top: 13px;
+      padding-top: 10px;
+      border-top: 1px solid #ffffff1c;
+      color: #a99f8d;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    #readout {
+      position: fixed;
+      z-index: 2;
+      right: 18px;
+      bottom: 18px;
+      max-width: 300px;
+      padding: 10px 13px;
+      border: 1px solid #a9854c66;
+      border-radius: 9px;
+      background: #0b1119d9;
+      color: #d9c9ac;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    #hint {
+      position: fixed;
+      right: 18px;
+      top: 18px;
+      color: #a99f8d;
+      font-size: 11px;
+      text-align: right;
+      text-shadow: 0 2px 5px #000;
+    }
+
+    @media (max-width:600px) {
+      .panel {
+        top: 10px;
+        left: 10px;
+        padding: 13px;
+      }
+
+      #hint {
+        top: auto;
+        bottom: 80px;
+        right: 12px;
+      }
+
+      #readout {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="scene"></div>
+  <section class="panel">
+    <h1>MECHANICAL SOLAR SYSTEM</h1>
+    <p class="sub">蒸氣龐克風格・三維軌道運行模擬<br>8 大行星 + 冥王星與卡戎雙天體系統</p>
+    <div class="controls">
+      <button id="pauseBtn">❚❚ 暫停</button>
+      <button id="resetBtn">↺ 重設視角</button>
+      <button id="labelsBtn">隱藏名稱</button>
+    </div>
+    <div class="speedrow"><label for="speed">運行速度</label><input id="speed" type="range" min="0" max="8" step=".1"
+        value="2"><output id="speedValue">2.0×</output></div>
+    <div class="legend" id="legend"></div>
+    <div class="footer">滑鼠拖曳：旋轉視角　｜　滾輪：縮放<br>此為軌道關係示意，行星尺寸與距離非真實比例。</div>
+  </section>
+  <div id="hint">DRAG：旋轉　·　SCROLL：縮放</div>
+  <div id="readout">模擬時間：<span id="simDay">第 0 天</span><br>點選行星可查看名稱。</div>
+  <script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+  <script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+    const host = document.getElementById('scene');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x080d13);
+    scene.fog = new THREE.FogExp2(0x080d13, 0.0015);
+    const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, .1, 1800);
+    camera.position.set(0, 95, 175);
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    host.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = .05; controls.minDistance = 24; controls.maxDistance = 420;
+    scene.add(new THREE.AmbientLight(0x9b9a91, .75));
+    const sunLight = new THREE.PointLight(0xffc477, 2600, 600, 1.4); scene.add(sunLight);
+
+    // 背景星塵
+    const starGeo = new THREE.BufferGeometry(), starPts = [];
+    for (let i = 0; i < 1500; i++) {
+      const r = 260 + Math.random() * 500, theta = Math.random() * Math.PI * 2, u = Math.random() * 2 - 1;
+      const s = Math.sqrt(1 - u * u); starPts.push(r * s * Math.cos(theta), r * u, r * s * Math.sin(theta));
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPts, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xc7bda8, size: .65, transparent: true, opacity: .72})));
+
+    const brass = new THREE.MeshStandardMaterial({color: 0x987044, metalness: .85, roughness: .32});
+    const darkMetal = new THREE.MeshStandardMaterial({color: 0x27343b, metalness: .82, roughness: .4});
+    const goldLine = new THREE.LineBasicMaterial({color: 0xb58a50, transparent: true, opacity: .55});
+    const sun = new THREE.Group(); scene.add(sun);
+    const sunBall = new THREE.Mesh(new THREE.SphereGeometry(5.4, 48, 32), new THREE.MeshStandardMaterial({color: 0xd99a3f, metalness: .72, roughness: .27, emissive: 0x6b3008, emissiveIntensity: .65}));
+    sun.add(sunBall);
+    const sunWire = new THREE.Mesh(new THREE.SphereGeometry(5.58, 24, 16), new THREE.MeshBasicMaterial({color: 0xf3c77f, wireframe: true, transparent: true, opacity: .23}));
+    sun.add(sunWire);
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(6.4 + i * .7, .075, 8, 100), brass);
+      ring.rotation.x = Math.PI / 2 + (i - 1) * .22; ring.rotation.y = i * .4; sun.add(ring);
+    }
+    const sunGlow = new THREE.PointLight(0xffb95c, 100, 90); sun.add(sunGlow);
+
+    // 半徑使用壓縮距離比例，保留行星先後次序與軌道偏心、傾角
+    const bodies = [
+      {name: '水星 Mercury', a: 12, e: .206, inc: 7.0, node: 48, period: 87.97, size: .75, color: 0x9b9182},
+      {name: '金星 Venus', a: 17, e: .007, inc: 3.39, node: 76, period: 224.7, size: 1.15, color: 0xd8b47b},
+      {name: '地球 Earth', a: 23, e: .017, inc: 0, node: 0, period: 365.256, size: 1.25, color: 0x438bc1},
+      {name: '火星 Mars', a: 29, e: .093, inc: 1.85, node: 49, period: 686.98, size: 1.0, color: 0xb75d3d},
+      {name: '木星 Jupiter', a: 43, e: .049, inc: 1.3, node: 100, period: 4332.6, size: 3.6, color: 0xc69b70},
+      {name: '土星 Saturn', a: 58, e: .057, inc: 2.49, node: 113, period: 10759, size: 3.0, color: 0xd8c08e, ring: true},
+      {name: '天王星 Uranus', a: 73, e: .046, inc: 0.77, node: 74, period: 30687, size: 2.2, color: 0x79c6cf},
+      {name: '海王星 Neptune', a: 88, e: .010, inc: 1.77, node: 132, period: 60190, size: 2.15, color: 0x4269c7},
+      {name: '冥王星 Pluto', a: 103, e: .249, inc: 17.16, node: 110, period: 90560, size: .85, color: 0xb9a18d, pluto: true}
+    ];
+    const objects = [];
+    function orbitPoint(a, e, inc, node, mean) {
+      let E = mean;
+      for (let j = 0; j < 6; j++) E -= (E - e * Math.sin(E) - mean) / (1 - e * Math.cos(E));
+      const x = a * (Math.cos(E) - e), z = a * Math.sqrt(1 - e * e) * Math.sin(E);
+      const n = node * Math.PI / 180, ii = inc * Math.PI / 180;
+      return new THREE.Vector3(x * Math.cos(n) - z * Math.sin(n) * Math.cos(ii), z * Math.sin(ii), x * Math.sin(n) + z * Math.cos(n) * Math.cos(ii));
+    }
+    function makeOrbit(b) {
+      const pts = [];
+      for (let k = 0; k <= 360; k++) pts.push(orbitPoint(b.a, b.e, b.inc, b.node, k / 360 * Math.PI * 2));
+      const g = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(g, goldLine); scene.add(line); return line;
+    }
+    function makeLabel(text) {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 96;
+      const c = canvas.getContext('2d'); c.font = 'bold 34px sans-serif'; c.fillStyle = '#ead4ac'; c.textAlign = 'center';
+      c.shadowColor = '#000'; c.shadowBlur = 8; c.fillText(text, 256, 58);
+      const tex = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthWrite: false}));
+      sprite.scale.set(13, 2.45, 1); return sprite;
+    }
+    bodies.forEach(b => {
+      makeOrbit(b);
+      const pivot = new THREE.Group(); scene.add(pivot);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(b.size, 32, 24), new THREE.MeshStandardMaterial({color: b.color, metalness: .35, roughness: .58}));
+      pivot.add(mesh);
+      if (b.ring) {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(b.size * 1.35, b.size * 2.05, 80), new THREE.MeshStandardMaterial({color: 0xc3a875, side: THREE.DoubleSide, metalness: .65, roughness: .5, transparent: true, opacity: .8}));
+        ring.rotation.x = -Math.PI / 2.35; mesh.add(ring);
+        const ring2 = new THREE.Mesh(new THREE.RingGeometry(b.size * 1.55, b.size * 1.82, 80), new THREE.MeshStandardMaterial({color: 0x79664d, side: THREE.DoubleSide, transparent: true, opacity: .7}));
+        ring2.rotation.x = -Math.PI / 2.35; mesh.add(ring2);
+      }
+      const label = makeLabel(b.name); scene.add(label);
+      objects.push({b, pivot, mesh, label});
+    });
+
+    // 冥王星—卡戎：在共同質心兩側互繞，再一起沿冥王星軌道繞太陽
+    const plutoObj = objects.find(o => o.b.pluto);
+    const pair = new THREE.Group(); scene.add(pair);
+    scene.remove(plutoObj.pivot); // 改由雙天體群組統一定位
+    pair.add(plutoObj.mesh);
+    const charon = new THREE.Mesh(new THREE.SphereGeometry(.48, 28, 20), new THREE.MeshStandardMaterial({color: 0xaaa99f, metalness: .25, roughness: .7}));
+    pair.add(charon);
+    const pairOrbit = new THREE.Mesh(new THREE.TorusGeometry(1.15, .025, 6, 90), new THREE.MeshBasicMaterial({color: 0xd5b98b, transparent: true, opacity: .7}));
+    pairOrbit.rotation.x = Math.PI / 2; pair.add(pairOrbit);
+    const charonLabel = makeLabel('卡戎 Charon'); scene.add(charonLabel);
+
+    const legend = document.getElementById('legend');
+    bodies.forEach(b => {
+      const s = document.createElement('span'); s.innerHTML = `<i class="dot" style="background:#${b.color.toString(16).padStart(6, '0')};color:#${b.color.toString(16).padStart(6, '0')}"></i>${b.name.split(' ')[0]}`;
+      legend.appendChild(s);
+    });
+    let running = true, speed = 2, elapsed = 0, showLabels = true;
+    const pauseBtn = document.getElementById('pauseBtn'), speedInput = document.getElementById('speed');
+    pauseBtn.onclick = () => {running = !running; pauseBtn.textContent = running ? '❚❚ 暫停' : '▶ 繼續';};
+    speedInput.oninput = () => {speed = +speedInput.value; document.getElementById('speedValue').textContent = speed.toFixed(1) + '×';};
+    document.getElementById('labelsBtn').onclick = () => {showLabels = !showLabels; objects.forEach(o => o.label.visible = showLabels); charonLabel.visible = showLabels; document.getElementById('labelsBtn').textContent = showLabels ? '隱藏名稱' : '顯示名稱';};
+    document.getElementById('resetBtn').onclick = () => {camera.position.set(0, 95, 175); controls.target.set(0, 0, 0); controls.update();};
+    const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+    renderer.domElement.addEventListener('click', ev => {
+      const r = renderer.domElement.getBoundingClientRect(); mouse.x = ((ev.clientX - r.left) / r.width) * 2 - 1; mouse.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects([...objects.map(o => o.mesh), charon]);
+      if (hits.length) {const hit = hits[0].object; const obj = objects.find(o => o.mesh === hit); document.getElementById('readout').innerHTML = obj ? `選取天體：<b>${obj.b.name}</b><br>公轉週期：約 ${obj.b.period.toLocaleString()} 地球日` : '選取天體：<b>卡戎 Charon</b><br>冥王星的主要天然衛星，與冥王星互繞共同質心。';}
+    });
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), .05);
+      if (running) elapsed += dt * speed * 18; // 模擬日數
+      objects.forEach(o => {
+        const b = o.b, mean = (elapsed / b.period) * Math.PI * 2;
+        const p = orbitPoint(b.a, b.e, b.inc, b.node, mean);
+        if (b.pluto) {
+          pair.position.copy(p);
+          const angle = elapsed / 6.387 * Math.PI * 2;
+          const r = 1.15;
+          plutoObj.mesh.position.set(-.18 * Math.cos(angle), 0, -.18 * Math.sin(angle));
+          charon.position.set(r * Math.cos(angle), 0, r * Math.sin(angle));
+          o.label.position.copy(p).add(new THREE.Vector3(0, 2.2, 0));
+          charonLabel.position.copy(p).add(new THREE.Vector3(0, 3.6, 0));
+        } else {
+          o.mesh.position.copy(p);
+          o.mesh.rotation.y += dt * .25;
+          o.label.position.copy(p).add(new THREE.Vector3(0, b.size + 1.5, 0));
+        }
+      });
+      sun.rotation.y += dt * .08;
+      controls.update(); renderer.render(scene, camera);
+      document.getElementById('simDay').textContent = '第 ' + Math.floor(elapsed * 18).toLocaleString() + ' 天';
+    }
+    animate();
+    addEventListener('resize', () => {camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);});
+  </script>
+</body>
+
+</html>
