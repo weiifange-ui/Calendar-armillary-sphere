@@ -293,11 +293,20 @@ input[type="text"],input:not([type]),input[type="time"],input[type="number"],tex
 .drawer-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:55;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:14px 8px;border:1px solid var(--line);border-right:0;border-radius:12px 0 0 12px;background:linear-gradient(180deg,rgba(34,55,93,.85),rgba(19,35,63,.85));
   box-shadow:-6px 0 20px rgba(0,0,0,.35);font-size:14px;letter-spacing:.2em;color:var(--gold)}
-.drawer-tab span{writing-mode:vertical-rl}
+/* 直式文字改用逐字換行，避免部分手機瀏覽器在按鈕內的直書排版讓字疊在一起 */
+.drawer-tab .v{display:block;line-height:1.35;letter-spacing:0;text-align:center}
+.drawer-tab .h{display:none}
 .drawer-tab:hover{border-color:var(--brass)}
 .quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .quick .btn{font-size:13px;padding:6px 12px;background:linear-gradient(rgba(34,55,93,.5),rgba(19,35,63,.5))}
-@media (max-width:700px){ .drawer{width:100vw} .drawer-tab{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:none} }
+@media (max-width:700px){
+  .drawer{width:100vw}
+  /* 手機：改成右下角的橫式懸浮按鈕，文字橫排，按鈕也更好點 */
+  .drawer-tab{top:auto;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:none;flex-direction:row;gap:8px;
+    padding:11px 18px;border-right:1px solid var(--line);border-radius:999px;letter-spacing:.08em;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  .drawer-tab .v{display:none}
+  .drawer-tab .h{display:inline}
+}
 @media (prefers-reduced-motion: reduce){ .drawer,.drawer-mask{transition:none} }
 
 /* ════════ 抽屜內的排版：依「抽屜寬度」而不是螢幕寬度調整，桌機與手機都不會擠在一起 ════════ */
@@ -401,7 +410,7 @@ input[type="text"],input:not([type]),input[type="time"],input[type="number"],tex
 
   </aside>
 </main>
-<button class="drawer-tab" id="drawerTab" aria-controls="drawer" aria-expanded="false">☰<span>更多功能</span></button>
+<button class="drawer-tab" id="drawerTab" aria-controls="drawer" aria-expanded="false" aria-label="更多功能">☰<span class="v" aria-hidden="true">更<br>多<br>功<br>能</span><span class="h" aria-hidden="true">更多功能</span></button>
 <div class="drawer-mask" id="drawerMask"></div>
 <aside class="drawer" id="drawer" aria-label="功能抽屜" aria-hidden="true">
   <div class="drawer-head"><h2>功能</h2><button class="close" id="drawerClose" aria-label="關閉抽屜">✕</button></div>
