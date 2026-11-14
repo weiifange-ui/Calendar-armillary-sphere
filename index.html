@@ -299,6 +299,35 @@ input[type="text"],input:not([type]),input[type="time"],input[type="number"],tex
 .quick .btn{font-size:13px;padding:6px 12px;background:linear-gradient(rgba(34,55,93,.5),rgba(19,35,63,.5))}
 @media (max-width:700px){ .drawer{width:100vw} .drawer-tab{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:none} }
 @media (prefers-reduced-motion: reduce){ .drawer,.drawer-mask{transition:none} }
+
+/* ════════ 抽屜內的排版：依「抽屜寬度」而不是螢幕寬度調整，桌機與手機都不會擠在一起 ════════ */
+.drawer-body{container-type:inline-size}
+.drawer-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.drawer-nav::-webkit-scrollbar{display:none}
+.drawer-nav button{flex:none;white-space:nowrap}
+.drawer .card{padding:16px 14px}
+.drawer #evForm{display:grid;grid-template-columns:7.4em minmax(0,1fr) auto;gap:8px}
+.drawer #anForm{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
+.drawer .addrow input,.drawer .addrow select{width:100%;min-width:0;flex:none}
+.drawer .wx-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.drawer .wx-search input,.drawer .wx-search select{width:100%;min-width:0}
+@container (max-width:560px){
+  .ptable thead{display:none}
+  .ptable,.ptable tbody{display:block;width:100%}
+  .ptable tr{display:grid;grid-template-columns:auto auto 1fr;gap:2px 12px;align-items:baseline;padding:9px 2px;border-top:1px solid rgba(234,208,140,.12)}
+  .ptable td{border:0;padding:0}
+  .ptable td:nth-child(4){grid-column:1/-1;margin-top:2px}
+}
+@container (max-width:400px){
+  .drawer #evForm{grid-template-columns:7.4em minmax(0,1fr)}
+  .drawer #evForm button{grid-column:1/-1}
+  .drawer #anForm{grid-template-columns:minmax(0,1fr) auto}
+  .drawer #anForm input{grid-column:1/-1}
+  .events li button{grid-template-columns:1fr;gap:0}
+  .rows div{grid-template-columns:5.4em 1fr}
+  .learn-nav{gap:6px} .learn-nav .btn{flex:1 1 auto;padding-left:8px;padding-right:8px}
+  .up-list button{grid-template-columns:3.8em 1fr auto}
+}
 </style>
 </head>
 <body>
